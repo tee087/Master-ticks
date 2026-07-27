@@ -1,0 +1,27 @@
+{
+  "name": "ticketmaster",
+  "displayName": "Ticketmaster",
+  "version": "1.0.0",
+  "jsEngine": "jsc",
+  "orientation": "portrait",
+  "icon": "./assets/icon.png",
+  "userInterfaceStyle": "automatic",
+  "assetBundlePatterns": [
+    "**/*"
+  ],
+  "plugins": [
+    [
+      "expo-image-picker",
+      {
+        "photosPermission": "Allow Ticketmaster to access your photos so you can choose a profile image."
+      }
+    ]
+  ],
+  "ios": {
+    "supportsTablet": true
+  },
+  "android": {
+    "package": "com.ticketmaster"
+  },
+  "web": {}
+}
