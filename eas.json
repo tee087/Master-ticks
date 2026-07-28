@@ -5,6 +5,11 @@
         "buildType": "apk"
       }
     },
+    "development": {
+      "android": {
+        "buildType": "apk"
+      }
+    },
     "production": {}
   }
 }

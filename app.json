@@ -1,10 +1,8 @@
 {
-  "name": "ticketmaster",
-  "displayName": "Ticketmaster",
+  "name": "Ticketmaster",
   "version": "1.0.0",
-  "jsEngine": "jsc",
   "orientation": "portrait",
-  "icon": "./assets/icon.png",
+  "icon": "./assets/adaptive-icon.png",
   "userInterfaceStyle": "automatic",
   "assetBundlePatterns": [
     "**/*"
@@ -21,7 +19,16 @@
     "supportsTablet": true
   },
   "android": {
-    "package": "com.ticketmaster"
+    "package": "com.ticketmaster",
+    "permissions": [
+      "android.permission.RECORD_AUDIO"
+    ]
   },
-  "web": {}
+  "web": {},
+  "extra": {
+    "eas": {
+      "projectId": "d4e5c938-a9c4-4b66-bc3f-7709f445af3a"
+    }
+  },
+  "owner": "tituskipkirui008"
 }
