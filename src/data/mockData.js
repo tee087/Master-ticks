@@ -178,6 +178,18 @@ export const events = [
     quantity: 76000,
     category: 'Sports',
     description: 'An NFL Thanksgiving Day showdown between the Kansas City Chiefs and San Francisco 49ers.'
+  },
+  {
+    id: 16,
+    name: 'BTS – Love Yourself World Tour',
+    image: './assets/bts-image.png',
+    venue: 'MetLife Stadium - East Rutherford, NJ',
+    date: '2026-08-01T20:00:00',
+    time: '8:00 PM',
+    price: 181,
+    quantity: 55000,
+    category: 'Concerts',
+    description: 'BTS – Love Yourself World Tour returns to MetLife Stadium for two nights. Saturday, August 1, 2026 and Sunday, August 2, 2026 at 8:00 PM. Meet section 100 Level (Lower Bowl): Sections 101–149, 200 Level (Mezzanine/Club): Sections 201–250, 300 Level (Upper Bowl): Sections 301–350. Floor sections A–Z. Prices range from $181 (Upper level) to $2,500+ (VIP/Soundcheck).'
   }
 ];
 
