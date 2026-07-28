@@ -182,7 +182,7 @@ export const events = [
   {
     id: 16,
     name: 'BTS – Love Yourself World Tour',
-    image: './assets/bts-image.png',
+    image: './assets/bts-image.jpg',
     venue: 'MetLife Stadium - East Rutherford, NJ',
     date: '2026-08-01T20:00:00',
     time: '8:00 PM',
