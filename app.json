@@ -2,7 +2,7 @@
   "name": "Ticketmaster",
   "version": "1.0.0",
   "orientation": "portrait",
-  "icon": "./assets/adaptive-icon.png",
+  "icon": "./assets/icon.png",
   "userInterfaceStyle": "automatic",
   "assetBundlePatterns": [
     "**/*"
