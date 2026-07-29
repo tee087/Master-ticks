@@ -33,7 +33,7 @@ const VenueMap = ({ venue }) => {
   }, [venue, coordinate]);
   const openVenueInMaps = () => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue)}`);
   if (!coordinate) return <View style={styles.ticketMapLoading}><ActivityIndicator color="#075be0" /><Text style={styles.ticketMapLoadingText}>Finding {venue}</Text></View>;
-  const mapImage = `https://maps.googleapis.com/maps/api/staticmap?center=${coordinate.latitude},${coordinate.longitude}&zoom=15&size=640x360&maptype=roadmap&markers=color:red%7C${coordinate.latitude},${coordinate.longitude}&key=YOUR_GOOGLE_MAPS_API_KEY`;
+  const mapImage = `https://maps.googleapis.com/maps/api/staticmap?center=${coordinate.latitude},${coordinate.longitude}&zoom=15&size=640x360&maptype=roadmap&markers=color:red%7C${coordinate.latitude},${coordinate.longitude}`;
   return <View style={styles.ticketMap}><Image source={{ uri: mapImage }} style={styles.ticketMapImage} resizeMode="cover" /><View style={styles.mapOverlay} /></View>;
 };
 const CARD_WIDTH = Math.min(width * 0.76, 292);

@@ -13,12 +13,6 @@
       {
         "photosPermission": "Allow Ticketmaster to access your photos so you can choose a profile image."
       }
-    ],
-    [
-      "react-native-maps",
-      {
-        "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY_HERE"
-      }
     ]
   ],
   "ios": {
