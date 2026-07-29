@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image, ImageBackground, Dimensions, ActivityIndicator, Linking, Alert } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker } from 'react-native-maps';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { events } from './src/data/mockData';
@@ -34,7 +33,8 @@ const VenueMap = ({ venue }) => {
   }, [venue, coordinate]);
   const openVenueInMaps = () => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue)}`);
   if (!coordinate) return <View style={styles.ticketMapLoading}><ActivityIndicator color="#075be0" /><Text style={styles.ticketMapLoadingText}>Finding {venue}</Text></View>;
-  return <View style={styles.ticketMap}><MapView style={StyleSheet.absoluteFillObject} region={{ ...coordinate, latitudeDelta: .008, longitudeDelta: .008 }} scrollEnabled zoomEnabled><Marker coordinate={coordinate} title={venue} /></MapView><TouchableOpacity onPress={openVenueInMaps} style={styles.mapOpenButton}><Text style={styles.mapOpenButtonText}>Open in Maps</Text></TouchableOpacity></View>;
+  const mapImage = `https://maps.googleapis.com/maps/api/staticmap?center=${coordinate.latitude},${coordinate.longitude}&zoom=15&size=640x360&maptype=roadmap&markers=color:red%7C${coordinate.latitude},${coordinate.longitude}&key=YOUR_GOOGLE_MAPS_API_KEY`;
+  return <View style={styles.ticketMap}><Image source={{ uri: mapImage }} style={styles.ticketMapImage} resizeMode="cover" /><View style={styles.mapOverlay} /></View>;
 };
 const CARD_WIDTH = Math.min(width * 0.76, 292);
 const feeRate = 12;
@@ -245,16 +245,6 @@ const styles = StyleSheet.create({
   referenceSeatValue: { color: '#101010', fontSize: 29, fontWeight: '900', marginTop: 15 },
   moreOptionsTitle: { color: '#111', fontSize: 24, fontWeight: '900', marginHorizontal: 20, marginTop: 35, marginBottom: 34 },
   ticketMap: { height: 310, marginHorizontal: 20, backgroundColor: '#a8e98a', overflow: 'hidden', position: 'relative' },
-  mapRoad: { position: 'absolute', height: 15, backgroundColor: '#f2f0e6', borderColor: '#a5a9a4', borderWidth: 1, transform: [{ rotate: '-38deg' }] },
-  mapRoadOne: { width: '140%', top: 145, left: -64 },
-  mapRoadTwo: { width: '128%', top: 215, left: -30, transform: [{ rotate: '25deg' }] },
-  mapLake: { position: 'absolute', backgroundColor: '#67d3ec', borderRadius: 60 },
-  mapLakeOne: { width: 84, height: 127, right: 30, bottom: 20 },
-  mapLakeTwo: { width: 50, height: 65, left: 26, bottom: 55 },
-  mapVenueName: { position: 'absolute', top: 55, left: 20, right: 20, color: '#1d1d1d', fontWeight: '800', fontSize: 26, textShadowColor: '#fff', textShadowRadius: 3 },
-  mapPin: { position: 'absolute', top: 146, left: '52%', width: 48, height: 48, borderRadius: 24, backgroundColor: '#ea3d4b', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#fff' },
-  mapPinText: { color: '#fff', fontSize: 21 },
-  mapCaption: { position: 'absolute', bottom: 12, right: 13, backgroundColor: 'rgba(255,255,255,.87)', color: '#1f4f90', paddingHorizontal: 9, paddingVertical: 5, fontSize: 11, fontWeight: '800' },
   extrasEmpty: { minHeight: 250, padding: 32, alignItems: 'center', justifyContent: 'center' },
   extrasEmptyTitle: { color: '#111', fontSize: 21, fontWeight: '900' },
   extrasEmptyCopy: { color: '#686868', textAlign: 'center', fontSize: 15, lineHeight: 22, marginTop: 10 },
@@ -271,8 +261,7 @@ const styles = StyleSheet.create({
   referenceSeatRow: { borderTopWidth: 4, borderColor: '#fff', flexDirection: 'row', paddingHorizontal: 20, paddingVertical: 20 },
   ticketMapLoading: { height: 310, marginHorizontal: 20, backgroundColor: '#eff5f1', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
   ticketMapLoadingText: { color: '#475467', textAlign: 'center', fontSize: 13, fontWeight: '700', marginTop: 11 },
-  mapOpenButton: { position: 'absolute', right: 12, bottom: 12, backgroundColor: '#fff', borderRadius: 4, paddingHorizontal: 12, paddingVertical: 9, elevation: 4, shadowColor: '#101828', shadowOpacity: .18, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
-  mapOpenButtonText: { color: '#075be0', fontSize: 12, fontWeight: '900' },
+  mapOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.15)' },
   navInactiveIcon: { color: '#98a2b3' },
   navProfileIcon: { width: 22, height: 22, alignItems: 'center', justifyContent: 'flex-end', marginBottom: 3 },
   navProfileHead: { width: 8, height: 8, borderRadius: 5, backgroundColor: '#98a2b3', marginBottom: 2 },
