@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image, ImageBackground, Dimensions, ActivityIndicator, Linking, Alert, Modal } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker } from 'react-native-maps';
+import { Svg, Path, Rect, Circle, Line, LinearGradient, Stop, Text as SvgText, Defs } from 'react-native-svg';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
-import { Svg, Path } from 'react-native-svg';
 import { events } from './src/data/mockData';
 import { importedTicketmasterEvents } from './src/data/importedTicketmasterEvents';
 import { fetchTicketmasterEvents, isTicketmasterConfigured } from './src/services/ticketmaster';
@@ -16,34 +16,80 @@ const venueCoordinates = {
   'MetLife Stadium - East Rutherford, NJ': { latitude: 40.8135, longitude: -74.0745 },
 };
 const venueCoordinateCache = new Map();
-const VenueMap = ({ venue }) => {
-  const [coordinate, setCoordinate] = useState(() => venueCoordinates[venue] || venueCoordinateCache.get(venue) || null);
-  useEffect(() => {
-    if (coordinate) return undefined;
-    let mounted = true;
-    fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(venue)}`, { headers: { Accept: 'application/json' } })
-      .then((response) => response.ok ? response.json() : [])
-      .then((results) => {
-        const result = results[0];
-        if (!result || !mounted) return;
-        const nextCoordinate = { latitude: Number(result.lat), longitude: Number(result.lon) };
-        venueCoordinateCache.set(venue, nextCoordinate);
-        setCoordinate(nextCoordinate);
-      })
-      .catch(() => {});
-    return () => { mounted = false; };
-  }, [venue, coordinate]);
+const VenueMap = ({ venue, eventName }) => {
+  const isBTSTicket = eventName && (eventName.includes('BTS') || eventName.toLowerCase().includes('bts'));
   const openVenueInMaps = async () => {
     const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue)}`;
     try { await Linking.openURL(url); } catch { Alert.alert('Directions unavailable', 'Please try again after checking your internet connection.'); }
   };
-  if (!coordinate) return <View style={styles.ticketMapLoading}><ActivityIndicator color="#075be0" /><Text style={styles.ticketMapLoadingText}>Finding {venue}</Text></View>;
-  const region = { ...coordinate, latitudeDelta: 0.012, longitudeDelta: 0.012 };
+  if (isBTSTicket) {
+    return <View style={styles.ticketMap}>
+      <Image source={{ uri: 'file:///C:/Users/Administrator/Downloads/WhatsApp Image 2026-07-30 at 06.50.47.jpeg' }} style={styles.btsMapImage} />
+      <View style={styles.btsMapOverlay}>
+        <View style={styles.btsMapPinContainer}>
+          <View style={styles.btsMapPin} />
+          <View style={styles.btsMapPinShadow} />
+        </View>
+        <View style={styles.btsMapCompass}>
+          <Svg width={12} height={12} viewBox="0 0 24 24">
+            <Path d="M12 2L8 10h8L12 2z" fill="#666" />
+          </Svg>
+        </View>
+        <View style={styles.btsMapZoomControls}>
+          <View style={styles.btsMapZoomBtn}><Svg width={12} height={12} viewBox="0 0 24 24"><Path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="#fff" /></Svg></View>
+          <View style={styles.btsMapZoomBtn}><Svg width={12} height={12} viewBox="0 0 24 24"><Path d="M19 13H5v-2h14v2z" fill="#fff" /></Svg></View>
+        </View>
+      </View>
+      <View style={styles.btsMapControls}>
+        <View style={styles.btsMapLocationBtn}>
+          <Svg width={16} height={16} viewBox="0 0 24 24">
+            <Circle cx="12" cy="12" r="8" fill="#075be0" />
+            <Circle cx="12" cy="12" r="4" fill="#fff" />
+          </Svg>
+        </View>
+      </View>
+      <TouchableOpacity accessibilityLabel="Open venue directions" onPress={openVenueInMaps} style={styles.ticketMapDirections}><Text style={styles.ticketMapDirectionsText}>Open directions</Text></TouchableOpacity>
+    </View>;
+  }
+  const coordinate = venueCoordinates[venue] || venueCoordinateCache.get(venue) || { latitude: 40.7128, longitude: -74.0060 };
+  const mapWidth = 292;
+  const mapHeight = 180;
   return <View style={styles.ticketMap}>
-    <MapView style={styles.ticketNativeMap} initialRegion={region} showsCompass={false} showsUserLocation={false} toolbarEnabled={false}>
-      <Marker coordinate={coordinate} title={venue} />
-    </MapView>
-    <TouchableOpacity accessibilityLabel="Open venue directions" onPress={openVenueInMaps} style={styles.ticketMapDirections}><Text style={styles.ticketMapDirectionsText}>Open directions</Text></TouchableOpacity>
+    <Svg width={mapWidth} height={mapHeight} style={StyleSheet.absoluteFill}>
+      <Defs>
+        <LinearGradient id="waterGradient" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#e3f2fd" />
+          <Stop offset="1" stopColor="#bbdefb" />
+        </LinearGradient>
+      </Defs>
+      <Rect x="0" y="0" width={mapWidth} height={mapHeight} fill="#e8eaf1" />
+      <Rect x="0" y="0" width={mapWidth} height={mapHeight} fill="url(#waterGradient)" />
+      <Rect x="10" y="10" width={mapWidth - 20} height={mapHeight - 20} fill="rgba(0,0,0,0.02)" />
+      <Path d="M0 50 L292 50" stroke="#90caf9" strokeWidth="2" strokeDasharray="4,4" />
+      <Path d="M40 70 L252 70" stroke="#90caf9" strokeWidth="2" strokeDasharray="4,4" />
+      <Path d="M60 90 L232 90" stroke="#90caf9" strokeWidth="2" strokeDasharray="4,4" />
+      <Path d="M0 110 L292 110" stroke="#64b5f6" strokeWidth="3" />
+      <Path d="M20 130 L272 130" stroke="#64b5f6" strokeWidth="3" />
+      <Path d="M40 150 L252 150" stroke="#42a5f5" strokeWidth="4" />
+      <Path d="M80 120 L200 80 L220 140" stroke="#ff6b6b" strokeWidth="6" strokeLinecap="round" fill="none" />
+      <Path d="M82 122 L202 82 L222 142" stroke="rgba(255,107,107,0.6)" strokeWidth="3" strokeLinecap="round" fill="none" />
+      <Circle cx="85" cy="125" r="3" fill="#ff6b6b" />
+      <Circle cx="205" cy="85" r="3" fill="#ff6b6b" />
+      <Circle cx="225" cy="145" r="3" fill="#ff6b6b" />
+      <Circle cx="240" cy="100" r="4" fill="#4caf50" />
+      <Circle cx="160" cy="120" r="4" fill="#4caf50" />
+      <Circle cx="120" cy="140" r="4" fill="#4caf50" />
+      <SvgText x="10" y="25" fontSize="10" fill="#1976d2" fontWeight="500">I-95</SvgText>
+      <SvgText x="12" y="45" fontSize="9" fill="#424242">Route 3</SvgText>
+      <SvgText x="55" y="35" fontSize="9" fill="#757575">NJ-17</SvgText>
+      <SvgText x="10" y="75" fontSize="9" fill="#757575">MetLife</SvgText>
+      <SvgText x="200" y="165" fontSize="9" fill="#757575">East Rutherford</SvgText>
+      <SvgText x="220" y="105" fontSize="9" fill="#757575">NJ Turnpike</SvgText>
+      <SvgText x="130" y="115" fontSize="9" fill="#757575">Stadium Blvd</SvgText>
+      <Rect x="245" y="10" width="12" height="12" rx="6" fill="#ff4444" stroke="#cc0000" strokeWidth="1" />
+      <SvgText x="251" y="19" fontSize="8" fill="#fff" fontWeight="700">!</SvgText>
+    </Svg>
+    <View style={styles.ticketMapDirections}><Text style={styles.ticketMapDirectionsText}>Open directions</Text></View>
   </View>;
 };
 const CARD_WIDTH = Math.min(width * 0.76, 292);
@@ -120,8 +166,8 @@ const TicketCard = ({ order, onTransfer, onDelete, onBack }) => {
     {activeTab === 'tickets' ? <>
       <View style={styles.orderHeading}><View><Text style={styles.orderTitle}>Order #34-5678/NJ</Text><Text style={styles.orderCount}>x{ticketCount} Tickets</Text></View><TouchableOpacity accessibilityLabel="Delete ticket" onPress={confirmDelete} style={styles.orderMenu}><Text style={styles.orderMenuText}>⋮</Text></TouchableOpacity></View>
       {order.seats.map((seatValue, index) => { const ticket = parseSeat(seatValue); return <View key={`${seatValue}-${index}`} style={styles.referenceTicket}><View style={styles.referenceTicketHeader}><Text style={styles.referenceTicketType}>ARMY MEMBERSHIP PRESALE - SOUNDCHECK VIP PACKAGE</Text></View><View style={styles.referenceSeatRow}><View style={styles.referenceSeat}><Text style={styles.referenceSeatLabel}>SECTION</Text><Text style={styles.referenceSeatValue}>{ticket.section}</Text></View><View style={styles.referenceSeat}><Text style={styles.referenceSeatLabel}>ROW</Text><Text style={styles.referenceSeatValue}>{ticket.row}</Text></View><View style={[styles.referenceSeat, styles.referenceSeatLast]}><Text style={styles.referenceSeatLabel}>SEAT</Text><Text style={styles.referenceSeatValue}>{ticket.seat}</Text></View></View></View>; })}
-      <Text style={styles.ticketMapTitle}>VENUE MAP</Text>
-      <VenueMap venue={order.event.venue} />
+<Text style={styles.ticketMapTitle}>VENUE MAP</Text>
+      <VenueMap venue={order.event.venue} eventName={order.event.name} />
       <TouchableOpacity accessibilityLabel="Get directions" onPress={openDirections} style={styles.ticketMapAttachedDirections}><Text style={styles.ticketMapAttachedDirectionsText}>Get directions</Text></TouchableOpacity>
     </> : <View style={styles.extrasEmpty}><Text style={styles.extrasEmptyTitle}>Extras for your event</Text><Text style={styles.extrasEmptyCopy}>Parking, merchandise, and upgrades will appear here when available.</Text></View>}
     <TicketBarcodeModal order={order} visible={showBarcode} onClose={() => setShowBarcode(false)} />
@@ -151,7 +197,7 @@ const LegacyTicketCard = ({ order, onTransfer }) => {
       <TouchableOpacity onPress={openDirections} style={styles.directionsButton}><Text style={styles.directionsButtonText}>Get Directions</Text></TouchableOpacity>
       <View style={styles.ticketWhiteBody}><View style={styles.gateBlock}><Text style={styles.gateLabel}>ENTRY GATE</Text><Text style={styles.gateValue}>{entryGate}</Text></View><TouchableOpacity onPress={() => setShowBarcode((shown) => !shown)} style={styles.ticketPrimaryAction}><Text style={styles.ticketPrimaryActionText}>{showBarcode ? 'Hide Barcode' : 'View Ticket'}</Text></TouchableOpacity>{showBarcode && <View style={styles.barcode}><View style={styles.barcodeBars}>{[2, 5, 3, 1, 4, 2, 6, 1, 3, 5, 2, 4, 1, 5, 3, 2].map((bar, index) => <View key={index} style={[styles.barcodeBar, { width: bar }]} />)}</View><Text style={styles.barcodeNumber}>{order.id}</Text></View>}<View style={styles.ticketLinks}><TouchableOpacity onPress={() => setShowBarcode(true)}><Text style={styles.ticketLink}>View Barcode</Text></TouchableOpacity><TouchableOpacity onPress={() => action('Ticket details')}><Text style={styles.ticketLink}>Ticket Details</Text></TouchableOpacity></View></View>
       <Text style={styles.ticketMapTitle}>VENUE MAP</Text>
-      <VenueMap venue={order.event.venue} />
+      <VenueMap venue={order.event.venue} eventName={order.event.name} />
       <View style={styles.verifiedFooter}><Text style={styles.verifiedIcon}>♢</Text><Text style={styles.verifiedText}>ticketmaster.verified</Text></View>
     </View>
     <View style={styles.ticketDots}><View style={styles.dotActive} /><View style={styles.dot} /><View style={styles.dot} /></View>
@@ -323,7 +369,6 @@ const styles = StyleSheet.create({
   moreOptionsTitle: { color: '#111', fontSize: 24, fontWeight: '900', marginHorizontal: 20, marginTop: 35, marginBottom: 34 },
   ticketMapTitle: { color: '#555', fontSize: 12, fontWeight: '900', letterSpacing: .7, marginHorizontal: 20, marginTop: 18, marginBottom: 10 },
   ticketMap: { height: 230, marginHorizontal: 20, marginBottom: 25, backgroundColor: '#e7edf4', borderRadius: 14, borderWidth: 1, borderColor: '#e0e5eb', overflow: 'hidden', position: 'relative' },
-  ticketNativeMap: { width: '100%', height: '100%' },
   ticketMapDirections: { position: 'absolute', right: 12, bottom: 12, backgroundColor: '#fff', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 9, shadowColor: '#101828', shadowOpacity: .18, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
   ticketMapDirectionsText: { color: '#075be0', fontSize: 13, fontWeight: '900' },
   directionsButton: { minHeight: 44, backgroundColor: '#fff', borderRadius: 4, justifyContent: 'center', alignItems: 'center', marginBottom: 16, marginHorizontal: 18, borderWidth: 1, borderColor: '#075be0' },
@@ -339,9 +384,6 @@ const styles = StyleSheet.create({
   floatingActionText: { color: '#9a9a9a', fontSize: 13, marginTop: 1, fontWeight: '700' },
   floatingActionTextActive: { color: '#075be0' },
   aboutScroll: { maxHeight: 210, marginRight: -8, paddingRight: 8 },
-  ticketMapLoading: { height: 310, marginHorizontal: 20, backgroundColor: '#eff5f1', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
-  ticketMapLoadingText: { color: '#475467', textAlign: 'center', fontSize: 13, fontWeight: '700', marginTop: 11 },
-  mapOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.15)' },
   navInactiveIcon: { color: '#98a2b3' },
   navProfileIcon: { width: 22, height: 22, alignItems: 'center', justifyContent: 'flex-end', marginBottom: 3 },
   navProfileHead: { width: 8, height: 8, borderRadius: 5, backgroundColor: '#98a2b3', marginBottom: 2 },
@@ -369,7 +411,18 @@ const styles = StyleSheet.create({
   barcodeDoneButton: { height: 49, backgroundColor: '#075be0', borderRadius: 4, alignItems: 'center', justifyContent: 'center', marginTop: 20 },
   barcodeDoneButtonText: { color: '#fff', fontSize: 16, fontWeight: '900' },
   ticketMapAttachedDirections: { height: 52, marginHorizontal: 20, marginTop: -25, marginBottom: 28, borderBottomLeftRadius: 14, borderBottomRightRadius: 14, backgroundColor: '#e5e5e5', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#d0d0d0' },
-  ticketMapAttachedDirectionsText: { color: '#333', fontSize: 16, fontWeight: '900' },
+ticketMapAttachedDirectionsText: { color: '#333', fontSize: 16, fontWeight: '900' },
+  btsMapImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+  btsMapOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'space-between', padding: 12 },
+  btsMapPinContainer: { position: 'absolute', top: '50%', left: '50%', transform: [{ translateX: -12 }, { translateY: -30 }], zIndex: 10 },
+  btsMapPin: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#ff4444', borderWidth: 2, borderColor: '#cc0000', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 4, elevation: 5 },
+  btsMapPinShadow: { position: 'absolute', width: 20, height: 10, bottom: -5, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.2)' },
+  btsMapCompass: { position: 'absolute', top: 12, right: 12, width: 24, height: 24, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 12, elevation: 2 },
+  btsMapZoomControls: { position: 'absolute', bottom: 12, left: 12, flexDirection: 'row', gap: 4 },
+  btsMapZoomBtn: { width: 28, height: 28, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 6, elevation: 2 },
+  btsMapControls: { position: 'absolute', bottom: 12, right: 12 },
+  btsMapLocationBtn: { width: 28, height: 28, justifyContent: 'center', alignItems: 'center', backgroundColor: '#075be0', borderRadius: 14, elevation: 3 },
+  ticketMapOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.1)' },
 });
 
 export default App;
