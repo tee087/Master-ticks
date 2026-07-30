@@ -1,3 +1,5 @@
+import { Constants } from 'expo-constants';
+
 const API_URL = 'https://app.ticketmaster.com/discovery/v2/events.json';
 
 const categoryFor = (event) => {
@@ -15,10 +17,10 @@ const eventImage = (event) => {
     || images[0]?.url;
 };
 
-export const isTicketmasterConfigured = () => Boolean(process.env.EXPO_PUBLIC_TICKETMASTER_API_KEY);
+export const isTicketmasterConfigured = () => Boolean(Constants?.manifest?.extra?.ticketmasterApiKey || process.env.EXPO_PUBLIC_TICKETMASTER_API_KEY);
 
 export const fetchTicketmasterEvents = async ({ keyword = '', category = 'events', page = 0, countryCode = 'US' }) => {
-  const apiKey = process.env.EXPO_PUBLIC_TICKETMASTER_API_KEY;
+  const apiKey = Constants?.manifest?.extra?.ticketmasterApiKey || process.env.EXPO_PUBLIC_TICKETMASTER_API_KEY;
   if (!apiKey) return { events: [], hasMore: false };
 
   const params = new URLSearchParams({ apikey: apiKey, size: '20', page: String(page), countryCode });
