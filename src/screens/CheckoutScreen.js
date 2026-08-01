@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, FlatList } from 'react-native';
 import { theme } from '../styles/theme';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { events } from '../data/mockData';
@@ -24,6 +24,43 @@ const CheckoutScreen = () => {
     navigation.navigate('MainTabs', { screen: 'Home' });
   };
 
+  const renderSection = (section, sectionIndex) => {
+    const rowIndex = row => {
+      const rows = section.rows;
+      const rowObj = rows.find((_, i) => {
+        const testRow = rows[i];
+        return testRow === row;
+      });
+      return rowObj || rows[0];
+    };
+    const rows = section.rows || [];
+    const seatsPerRow = section.seatsPerRow || 20;
+
+    return (
+      <View key={sectionIndex} style={styles.sectionContainer}>
+        <Text style={styles.sectionHeader}>{section.name}</Text>
+        {rows.map((row, rowIdx) => {
+          const seatCount = typeof seatsPerRow === 'object' ? seatsPerRow[rowIdx] || seatsPerRow[0] : seatsPerRow;
+          const emptySeats = Array.from({ length: seatCount }, (_, i) => i + 1);
+          return (
+            <View key={row} style={styles.rowContainer}>
+              <Text style={styles.rowLabel}>{row}</Text>
+              <View style={styles.seatRow}>
+                {emptySeats.map(seat => (
+                  <TouchableOpacity key={seat} style={styles.seat}>
+                    <Text style={styles.seatText}>{seat}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
+
+  const seatingConfig = event.seatingConfig || { sections: [] };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.topBar}><Text style={styles.topBarBrand}>ticketmaster</Text><Text style={styles.topBarText}>Secure checkout</Text></View>
@@ -35,17 +72,14 @@ const CheckoutScreen = () => {
 
         <View style={styles.checkoutContent}>
           <View style={styles.seating}>
-            <Text style={styles.sectionTitle}>Select Seats</Text>
-            <View style={styles.seatingMap}>
-              <Text style={styles.stageLabel}>Stage A - Available</Text>
-              <View style={styles.seats}>
-                {[...Array(10)].map((_, i) => (
-                  <TouchableOpacity key={i} style={styles.seat} disabled>
-                    <Text style={styles.seatNumber}>{i + 1}</Text>
-                  </TouchableOpacity>
-                ))}
+            <Text style={styles.sectionTitle}>Pick Your Seats</Text>
+            {seatingConfig.sections.length > 0 ? (
+              seatingConfig.sections.map(renderSection)
+            ) : (
+              <View style={styles.seatingPlaceholder}>
+                <Text style={styles.seatingText}>Seating chart not available for this event</Text>
               </View>
-            </View>
+            )}
           </View>
 
           <View style={styles.orderSummary}>
@@ -123,8 +157,50 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   checkoutContent: { flex: 1 },
-  seating: {
-    backgroundColor: theme.colors.primaryLight, padding: theme.spacing.md, borderRadius: 6, marginBottom: theme.spacing.md,
+  sectionContainer: {
+    backgroundColor: '#fff', padding: theme.spacing.md, borderRadius: 6, marginBottom: theme.spacing.md, ...theme.shadows.card,
+  },
+  sectionHeader: {
+    fontSize: 16, fontWeight: '700', color: theme.colors.text, marginBottom: theme.spacing.sm,
+  },
+  rowContainer: {
+    flexDirection: 'row', alignItems: 'center', marginBottom: theme.spacing.xs,
+  },
+  rowLabel: {
+    width: 40, fontSize: 14, fontWeight: '600', color: theme.colors.text,
+  },
+  seatRow: {
+    flex: 1, flexDirection: 'row', flexWrap: 'wrap',
+  },
+  seatingPlaceholder: {
+    padding: theme.spacing.lg,
+    backgroundColor: theme.colors.disabled,
+    borderRadius: theme.borderRadius,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  seatingText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+  },
+  seats: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  seat: {
+    width: 30,
+    height: 30,
+    borderRadius: theme.borderRadius,
+    backgroundColor: theme.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: 2,
+  },
+  seatText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
   },
   orderSummary: {
     backgroundColor: '#fff', padding: theme.spacing.md, borderRadius: 6, ...theme.shadows.card,
@@ -137,30 +213,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: theme.colors.text,
     marginBottom: theme.spacing.md,
-  },
-  stageLabel: {
-    fontSize: 14,
-    color: theme.colors.primaryDark, fontWeight: '700',
-    marginBottom: theme.spacing.sm,
-  },
-  seats: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-  },
-  seat: {
-    width: 40,
-    height: 40,
-    borderRadius: theme.borderRadius,
-    backgroundColor: theme.colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    margin: 4,
-  },
-  seatNumber: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '800',
   },
   orderRow: {
     flexDirection: 'row',

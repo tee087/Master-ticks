@@ -189,7 +189,16 @@ export const events = [
     price: 750,
     quantity: 55000,
     category: 'Concerts',
-    description: 'BTS – Love Yourself World Tour returns to MetLife Stadium for two nights. Saturday, August 1, 2026 at 8:00 PM. Meet section 100 Level (Lower Bowl): Sections 101–149, 200 Level (Mezzanine/Club): Sections 201–250, 300 Level (Upper Bowl): Sections 301–350. Floor sections A–Z. Prices range from $181 (Upper level) to $2,500+ (VIP/Soundcheck). TERMS & CONDITIONS: Take care of your ticket, as it cannot be replaced if lost, stolen or destroyed, and is valid only for event and seat printed on ticket. This ticket is a revocable license to attend the event listed on the front of the ticket and is subject to the full terms found at www.ticketmaster.com. Such license may be revoked without refund for noncompliance with terms. Unlawful sale or attempted sale prohibited. Tickets obtained from unauthorized sources may be invalid, lost, stolen, or counterfeit and if so, are void. Maximum resale restrictions may apply. NY: if venue seats more than 5,000 persons, ticket may not be resold within 1,500 feet from the physical structure of this place of entertainment under penalty of law. IF an event is not played, ticket may be exchanged for same price seat for either: (a) rescheduled event, if any; or, if applicable, (b) any event designated by the place of entertainment, within 12 months of original event, if available. TIME, OPPONENT, ROSTERS AND DATE SUBJECT TO CHANGE. This ticket may not be used for advertising, promotion or other trade purposes without the written consent of issuer.'
+    description: 'BTS – Love Yourself World Tour returns to MetLife Stadium for two nights. Prices range from $181 (Upper level) to $2,500+ (VIP/Soundcheck).',
+    seatingConfig: {
+      venueName: 'MetLife Stadium',
+      sections: [
+        { name: 'Floor', type: 'floor', rows: ['A','B','C','D','E','F','G','H','J','K','L','M','N','P','Q','R','S','T'], seatsPerRow: [36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36] },
+        { name: '100 Level', type: 'lower', rows: Array.from({length: 42}, (_, i) => String(i+1)), seatsPerRow: 32 },
+        { name: '200 Level', type: 'mezzanine', rows: Array.from({length: 17}, (_, i) => String(i+1)), seatsPerRow: 28 },
+        { name: '300 Level', type: 'upper', rows: Array.from({length: 26}, (_, i) => String(i+1)), seatsPerRow: 24 }
+      ]
+    }
   },
   {
     id: 17,
@@ -201,7 +210,16 @@ export const events = [
     price: 750,
     quantity: 55000,
     category: 'Concerts',
-    description: 'BTS – Love Yourself World Tour returns to MetLife Stadium for two nights. Sunday, August 2, 2026 at 8:00 PM. Meet section 100 Level (Lower Bowl): Sections 101–149, 200 Level (Mezzanine/Club): Sections 201–250, 300 Level (Upper Bowl): Sections 301–350. Floor sections A–Z. Prices range from $181 (Upper level) to $2,500+ (VIP/Soundcheck). TERMS & CONDITIONS: Take care of your ticket, as it cannot be replaced if lost, stolen or destroyed, and is valid only for event and seat printed on ticket. This ticket is a revocable license to attend the event listed on the front of the ticket and is subject to the full terms found at www.ticketmaster.com. Such license may be revoked without refund for noncompliance with terms. Unlawful sale or attempted sale prohibited. Tickets obtained from unauthorized sources may be invalid, lost, stolen, or counterfeit and if so, are void. Maximum resale restrictions may apply. NY: if venue seats more than 5,000 persons, ticket may not be resold within 1,500 feet from the physical structure of this place of entertainment under penalty of law. IF an event is not played, ticket may be exchanged for same price seat for either: (a) rescheduled event, if any; or, if applicable, (b) any event designated by the place of entertainment, within 12 months of original event, if available. TIME, OPPONENT, ROSTERS AND DATE SUBJECT TO CHANGE. This ticket may not be used for advertising, promotion or other trade purposes without the written consent of issuer.'
+    description: 'BTS – Love Yourself World Tour returns to MetLife Stadium for Sunday night. Prices range from $181 (Upper level) to $2,500+ (VIP/Soundcheck).',
+    seatingConfig: {
+      venueName: 'MetLife Stadium',
+      sections: [
+        { name: 'Floor', type: 'floor', rows: ['A','B','C','D','E','F','G','H','J','K','L','M','N','P','Q','R','S','T'], seatsPerRow: [36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36] },
+        { name: '100 Level', type: 'lower', rows: Array.from({length: 42}, (_, i) => String(i+1)), seatsPerRow: 32 },
+        { name: '200 Level', type: 'mezzanine', rows: Array.from({length: 17}, (_, i) => String(i+1)), seatsPerRow: 28 },
+        { name: '300 Level', type: 'upper', rows: Array.from({length: 26}, (_, i) => String(i+1)), seatsPerRow: 24 }
+      ]
+    }
   },
   {
     id: 18,
@@ -213,7 +231,16 @@ export const events = [
     price: 850,
     quantity: 75000,
     category: 'Concerts',
-    description: 'BTS – Love Yourself World Tour at M&T Bank Stadium, Baltimore. Floor sections A, B, C, D, E, F, G, H, J, K, L, M, P, Q. 100 Level: Sections 100-153. 200 Club: Sections 200-253. 300 & 400: Suites. 500 Level: Sections 500-553. Row layout: Lettered rows A-Z, AA... 100 Level Rows 1-42, 200 Club Rows 1-13, 500 Rows 1-32. Seat numbers begin at 1, increasing sequentially across rows.'
+    description: 'BTS – Love Yourself World Tour at M&T Bank Stadium, Baltimore.',
+    seatingConfig: {
+      venueName: 'M&T Bank Stadium',
+      sections: [
+        { name: 'Floor', type: 'floor', rows: ['A','B','C','D','E','F','G','H','J','K','L','M','P','Q'], seatsPerRow: 32 },
+        { name: '100 Level', type: 'lower', rows: Array.from({length: 42}, (_, i) => String(i+1)), seatsPerRow: 32 },
+        { name: '200 Club', type: 'club', rows: Array.from({length: 13}, (_, i) => String(i+1)), seatsPerRow: 28 },
+        { name: '500 Level', type: 'upper', rows: Array.from({length: 32}, (_, i) => String(i+1)), seatsPerRow: 24 }
+      ]
+    }
   },
   {
     id: 19,
@@ -225,7 +252,16 @@ export const events = [
     price: 850,
     quantity: 75000,
     category: 'Concerts',
-    description: 'BTS – Love Yourself World Tour second night at M&T Bank Stadium, Baltimore. Floor sections A, B, C, D, E, F, G, H, J, K, L, M, P, Q. 100 Level: Sections 100-153. 200 Club: Sections 200-253. 300 & 400: Suites. 500 Level: Sections 500-553. Row layout: Lettered rows A-Z, AA... 100 Level Rows 1-42, 200 Club Rows 1-13, 500 Rows 1-32. Seat numbers begin at 1, increasing sequentially across rows.'
+    description: 'BTS – Love Yourself World Tour second night at M&T Bank Stadium, Baltimore.',
+    seatingConfig: {
+      venueName: 'M&T Bank Stadium',
+      sections: [
+        { name: 'Floor', type: 'floor', rows: ['A','B','C','D','E','F','G','H','J','K','L','M','P','Q'], seatsPerRow: 32 },
+        { name: '100 Level', type: 'lower', rows: Array.from({length: 42}, (_, i) => String(i+1)), seatsPerRow: 32 },
+        { name: '200 Club', type: 'club', rows: Array.from({length: 13}, (_, i) => String(i+1)), seatsPerRow: 28 },
+        { name: '500 Level', type: 'upper', rows: Array.from({length: 32}, (_, i) => String(i+1)), seatsPerRow: 24 }
+      ]
+    }
   },
   {
     id: 20,
@@ -237,7 +273,18 @@ export const events = [
     price: 950,
     quantity: 80000,
     category: 'Concerts',
-    description: 'BTS – Love Yourself World Tour at AT&T Stadium, Arlington. Floor: Sections 1-16. Event Level: EL101, EL103, EL104A, EL106, EL107, EL109, EL112, EL114, EL216, EL219, EL221, EL230, EL237, EL241, EL247, EL250, EL254, EL258. 100 Level: Sections 101-145. Club: C107, C109, C111, C114, C115, C117, C208, C210, C211, C213, C232, C234, C235, C237, C239. 200: Sections 220-250. 300: Sections 301-349. 400: Sections 401-460. SRO & Suites. Floor Rows A-Z, AA..., 100 Level Rows 1-22, Club Rows 1-16, 200 Rows 1-14, 300 Rows 1-17, 400 Rows 1-30. Seats numbered 10-40 per row.'
+    description: 'BTS – Love Yourself World Tour at AT&T Stadium, Arlington.',
+    seatingConfig: {
+      venueName: 'AT&T Stadium',
+      sections: [
+        { name: 'Floor', type: 'floor', rows: Array.from({length: 16}, (_, i) => String(i+1)), seatsPerRow: 36 },
+        { name: '100 Level', type: 'lower', rows: Array.from({length: 22}, (_, i) => String(i+1)), seatsPerRow: 36 },
+        { name: 'Club', type: 'club', rows: Array.from({length: 16}, (_, i) => String(i+1)), seatsPerRow: 32 },
+        { name: '200 Level', type: 'mezzanine', rows: Array.from({length: 14}, (_, i) => String(i+1)), seatsPerRow: 28 },
+        { name: '300 Level', type: 'upper', rows: Array.from({length: 17}, (_, i) => String(i+1)), seatsPerRow: 24 },
+        { name: '400 Level', type: 'upper', rows: Array.from({length: 30}, (_, i) => String(i+1)), seatsPerRow: 24 }
+      ]
+    }
   },
   {
     id: 21,
@@ -249,7 +296,18 @@ export const events = [
     price: 950,
     quantity: 80000,
     category: 'Concerts',
-    description: 'BTS – Love Yourself World Tour second night at AT&T Stadium, Arlington. Floor: Sections 1-16. Event Level: EL101, EL103, EL104A, EL106, EL107, EL109, EL112, EL114, EL216, EL219, EL221, EL230, EL237, EL241, EL247, EL250, EL254, EL258. 100 Level: Sections 101-145. Club: C107, C109, C111, C114, C115, C117, C208, C210, C211, C213, C232, C234, C235, C237, C239. 200: Sections 220-250. 300: Sections 301-349. 400: Sections 401-460. SRO & Suites. Floor Rows A-Z, AA..., 100 Level Rows 1-22, Club Rows 1-16, 200 Rows 1-14, 300 Rows 1-17, 400 Rows 1-30. Seats numbered 10-40 per row.'
+    description: 'BTS – Love Yourself World Tour second night at AT&T Stadium, Arlington.',
+    seatingConfig: {
+      venueName: 'AT&T Stadium',
+      sections: [
+        { name: 'Floor', type: 'floor', rows: Array.from({length: 16}, (_, i) => String(i+1)), seatsPerRow: 36 },
+        { name: '100 Level', type: 'lower', rows: Array.from({length: 22}, (_, i) => String(i+1)), seatsPerRow: 36 },
+        { name: 'Club', type: 'club', rows: Array.from({length: 16}, (_, i) => String(i+1)), seatsPerRow: 32 },
+        { name: '200 Level', type: 'mezzanine', rows: Array.from({length: 14}, (_, i) => String(i+1)), seatsPerRow: 28 },
+        { name: '300 Level', type: 'upper', rows: Array.from({length: 17}, (_, i) => String(i+1)), seatsPerRow: 24 },
+        { name: '400 Level', type: 'upper', rows: Array.from({length: 30}, (_, i) => String(i+1)), seatsPerRow: 24 }
+      ]
+    }
   },
   {
     id: 22,
@@ -261,7 +319,17 @@ export const events = [
     price: 1000,
     quantity: 55000,
     category: 'Concerts',
-    description: 'BTS – Love Yourself World Tour at Rogers Stadium, Toronto. Floor: Sections A1-A8, B1-B8, C1-C8, D1-D8. West: Sections 101-107. North: Sections 108-118. East: Sections 119-125. South: Sections 126-129. Accessible: 102 WCR, 107 WCR, 119 WCR, 124 WCR. Seats numbered 1-36 per row.'
+    description: 'BTS – Love Yourself World Tour at Rogers Stadium, Toronto.',
+    seatingConfig: {
+      venueName: 'Rogers Stadium',
+      sections: [
+        { name: 'Floor', type: 'floor', rows: ['A','B','C','D'], seatsPerRow: 48 },
+        { name: 'West', type: 'grandstand', rows: Array.from({length: 8}, (_, i) => String(i+1)), seatsPerRow: 40 },
+        { name: 'North', type: 'grandstand', rows: Array.from({length: 10}, (_, i) => String(i+1)), seatsPerRow: 36 },
+        { name: 'East', type: 'grandstand', rows: Array.from({length: 7}, (_, i) => String(i+1)), seatsPerRow: 36 },
+        { name: 'South', type: 'grandstand', rows: Array.from({length: 4}, (_, i) => String(i+1)), seatsPerRow: 32 }
+      ]
+    }
   },
   {
     id: 23,
@@ -273,7 +341,17 @@ export const events = [
     price: 1000,
     quantity: 55000,
     category: 'Concerts',
-    description: 'BTS – Love Yourself World Tour second night at Rogers Stadium, Toronto. Floor: Sections A1-A8, B1-B8, C1-C8, D1-D8. West: Sections 101-107. North: Sections 108-118. East: Sections 119-125. South: Sections 126-129. Accessible: 102 WCR, 107 WCR, 119 WCR, 124 WCR. Seats numbered 1-36 per row.'
+    description: 'BTS – Love Yourself World Tour second night at Rogers Stadium, Toronto.',
+    seatingConfig: {
+      venueName: 'Rogers Stadium',
+      sections: [
+        { name: 'Floor', type: 'floor', rows: ['A','B','C','D'], seatsPerRow: 48 },
+        { name: 'West', type: 'grandstand', rows: Array.from({length: 8}, (_, i) => String(i+1)), seatsPerRow: 40 },
+        { name: 'North', type: 'grandstand', rows: Array.from({length: 10}, (_, i) => String(i+1)), seatsPerRow: 36 },
+        { name: 'East', type: 'grandstand', rows: Array.from({length: 7}, (_, i) => String(i+1)), seatsPerRow: 36 },
+        { name: 'South', type: 'grandstand', rows: Array.from({length: 4}, (_, i) => String(i+1)), seatsPerRow: 32 }
+      ]
+    }
   },
   {
     id: 24,
@@ -285,7 +363,17 @@ export const events = [
     price: 900,
     quantity: 65000,
     category: 'Concerts',
-    description: 'BTS – Love Yourself World Tour at Soldier Field, Chicago. Floor: Sections A, B, C, D, E, F, G, H, J, K, L, M, N, P, Q, R. 100 Level: Sections 101-155. 200 Club: Sections 201-250. 300: Sections 301-355. 400: Sections 401-455. Floor Rows A-Z, AA..., 100 Rows 1-35, 200 Rows 1-8, 300 Rows 1-19, 400 Rows 1-35. Seats 8-32 per row.'
+    description: 'BTS – Love Yourself World Tour at Soldier Field, Chicago.',
+    seatingConfig: {
+      venueName: 'Soldier Field',
+      sections: [
+        { name: 'Floor', type: 'floor', rows: ['A','B','C','D','E','F','G','H','J','K','L','M','N','P','Q','R'], seatsPerRow: 32 },
+        { name: '100 Level', type: 'lower', rows: Array.from({length: 35}, (_, i) => String(i+1)), seatsPerRow: 32 },
+        { name: '200 Club', type: 'club', rows: Array.from({length: 8}, (_, i) => String(i+1)), seatsPerRow: 28 },
+        { name: '300 Level', type: 'upper', rows: Array.from({length: 19}, (_, i) => String(i+1)), seatsPerRow: 24 },
+        { name: '400 Level', type: 'upper', rows: Array.from({length: 35}, (_, i) => String(i+1)), seatsPerRow: 24 }
+      ]
+    }
   },
   {
     id: 25,
@@ -297,7 +385,17 @@ export const events = [
     price: 900,
     quantity: 65000,
     category: 'Concerts',
-    description: 'BTS – Love Yourself World Tour second night at Soldier Field, Chicago. Floor: Sections A, B, C, D, E, F, G, H, J, K, L, M, N, P, Q, R. 100 Level: Sections 101-155. 200 Club: Sections 201-250. 300: Sections 301-355. 400: Sections 401-455. Floor Rows A-Z, AA..., 100 Rows 1-35, 200 Rows 1-8, 300 Rows 1-19, 400 Rows 1-35. Seats 8-32 per row.'
+    description: 'BTS – Love Yourself World Tour second night at Soldier Field, Chicago.',
+    seatingConfig: {
+      venueName: 'Soldier Field',
+      sections: [
+        { name: 'Floor', type: 'floor', rows: ['A','B','C','D','E','F','G','H','J','K','L','M','N','P','Q','R'], seatsPerRow: 32 },
+        { name: '100 Level', type: 'lower', rows: Array.from({length: 35}, (_, i) => String(i+1)), seatsPerRow: 32 },
+        { name: '200 Club', type: 'club', rows: Array.from({length: 8}, (_, i) => String(i+1)), seatsPerRow: 28 },
+        { name: '300 Level', type: 'upper', rows: Array.from({length: 19}, (_, i) => String(i+1)), seatsPerRow: 24 },
+        { name: '400 Level', type: 'upper', rows: Array.from({length: 35}, (_, i) => String(i+1)), seatsPerRow: 24 }
+      ]
+    }
   },
   {
     id: 26,
@@ -309,7 +407,20 @@ export const events = [
     price: 1100,
     quantity: 70000,
     category: 'Concerts',
-    description: 'BTS – Love Yourself World Tour at SoFi Stadium, Inglewood. Floor: Sections A1-A4, B1-B5, C1-C5, D1-D4. 100 Level: Sections 100-124. Club: C106-C110, C113-C118, C126-C137, C215-C217, C221-C223, C242-C244, C248-C250. VIP: VIP111-113, VIP118-120, VIP131-132, VIP219-220, VIP245-247. 200: Sections 200-214, 224-240. 300: Sections 300-353. 400: Sections 400-457. 500: Sections 504-553. Floor Rows A-Z, AA..., 100 Rows 1-20, Club Rows 1-12, 200 Rows 1-18, 300 Rows 1-18, 400 Rows 1-22, 500 Rows 1-28. Seats 12-32 in lower bowl, 8-26 in upper.'
+    description: 'BTS – Love Yourself World Tour at SoFi Stadium, Inglewood.',
+    seatingConfig: {
+      venueName: 'SoFi Stadium',
+      sections: [
+        { name: 'Floor', type: 'floor', rows: ['A','B','C','D'], seatsPerRow: 36 },
+        { name: '100 Level', type: 'lower', rows: Array.from({length: 20}, (_, i) => String(i+1)), seatsPerRow: 32 },
+        { name: 'Club', type: 'club', rows: Array.from({length: 12}, (_, i) => String(i+1)), seatsPerRow: 28 },
+        { name: 'VIP', type: 'vip', rows: Array.from({length: 3}, (_, i) => String(i+1)), seatsPerRow: 24 },
+        { name: '200 Level', type: 'mezzanine', rows: Array.from({length: 18}, (_, i) => String(i+1)), seatsPerRow: 24 },
+        { name: '300 Level', type: 'upper', rows: Array.from({length: 18}, (_, i) => String(i+1)), seatsPerRow: 24 },
+        { name: '400 Level', type: 'upper', rows: Array.from({length: 22}, (_, i) => String(i+1)), seatsPerRow: 20 },
+        { name: '500 Level', type: 'upper', rows: Array.from({length: 28}, (_, i) => String(i+1)), seatsPerRow: 18 }
+      ]
+    }
   },
   {
     id: 27,
@@ -321,7 +432,20 @@ export const events = [
     price: 1100,
     quantity: 70000,
     category: 'Concerts',
-    description: 'BTS – Love Yourself World Tour second night at SoFi Stadium, Inglewood. Floor: Sections A1-A4, B1-B5, C1-C5, D1-D4. 100 Level: Sections 100-124. Club: C106-C110, C113-C118, C126-C137, C215-C217, C221-C223, C242-C244, C248-C250. VIP: VIP111-113, VIP118-120, VIP131-132, VIP219-220, VIP245-247. 200: Sections 200-214, 224-240. 300: Sections 300-353. 400: Sections 400-457. 500: Sections 504-553. Floor Rows A-Z, AA..., 100 Rows 1-20, Club Rows 1-12, 200 Rows 1-18, 300 Rows 1-18, 400 Rows 1-22, 500 Rows 1-28. Seats 12-32 in lower bowl, 8-26 in upper.'
+    description: 'BTS – Love Yourself World Tour second night at SoFi Stadium, Inglewood.',
+    seatingConfig: {
+      venueName: 'SoFi Stadium',
+      sections: [
+        { name: 'Floor', type: 'floor', rows: ['A','B','C','D'], seatsPerRow: 36 },
+        { name: '100 Level', type: 'lower', rows: Array.from({length: 20}, (_, i) => String(i+1)), seatsPerRow: 32 },
+        { name: 'Club', type: 'club', rows: Array.from({length: 12}, (_, i) => String(i+1)), seatsPerRow: 28 },
+        { name: 'VIP', type: 'vip', rows: Array.from({length: 3}, (_, i) => String(i+1)), seatsPerRow: 24 },
+        { name: '200 Level', type: 'mezzanine', rows: Array.from({length: 18}, (_, i) => String(i+1)), seatsPerRow: 24 },
+        { name: '300 Level', type: 'upper', rows: Array.from({length: 18}, (_, i) => String(i+1)), seatsPerRow: 24 },
+        { name: '400 Level', type: 'upper', rows: Array.from({length: 22}, (_, i) => String(i+1)), seatsPerRow: 20 },
+        { name: '500 Level', type: 'upper', rows: Array.from({length: 28}, (_, i) => String(i+1)), seatsPerRow: 18 }
+      ]
+    }
   },
   {
     id: 28,
@@ -333,7 +457,20 @@ export const events = [
     price: 1100,
     quantity: 70000,
     category: 'Concerts',
-    description: 'BTS – Love Yourself World Tour third night at SoFi Stadium, Inglewood. Floor: Sections A1-A4, B1-B5, C1-C5, D1-D4. 100 Level: Sections 100-124. Club: C106-C110, C113-C118, C126-C137, C215-C217, C221-C223, C242-C244, C248-C250. VIP: VIP111-113, VIP118-120, VIP131-132, VIP219-220, VIP245-247. 200: Sections 200-214, 224-240. 300: Sections 300-353. 400: Sections 400-457. 500: Sections 504-553. Floor Rows A-Z, AA..., 100 Rows 1-20, Club Rows 1-12, 200 Rows 1-18, 300 Rows 1-18, 400 Rows 1-22, 500 Rows 1-28. Seats 12-32 in lower bowl, 8-26 in upper.'
+    description: 'BTS – Love Yourself World Tour third night at SoFi Stadium, Inglewood.',
+    seatingConfig: {
+      venueName: 'SoFi Stadium',
+      sections: [
+        { name: 'Floor', type: 'floor', rows: ['A','B','C','D'], seatsPerRow: 36 },
+        { name: '100 Level', type: 'lower', rows: Array.from({length: 20}, (_, i) => String(i+1)), seatsPerRow: 32 },
+        { name: 'Club', type: 'club', rows: Array.from({length: 12}, (_, i) => String(i+1)), seatsPerRow: 28 },
+        { name: 'VIP', type: 'vip', rows: Array.from({length: 3}, (_, i) => String(i+1)), seatsPerRow: 24 },
+        { name: '200 Level', type: 'mezzanine', rows: Array.from({length: 18}, (_, i) => String(i+1)), seatsPerRow: 24 },
+        { name: '300 Level', type: 'upper', rows: Array.from({length: 18}, (_, i) => String(i+1)), seatsPerRow: 24 },
+        { name: '400 Level', type: 'upper', rows: Array.from({length: 22}, (_, i) => String(i+1)), seatsPerRow: 20 },
+        { name: '500 Level', type: 'upper', rows: Array.from({length: 28}, (_, i) => String(i+1)), seatsPerRow: 18 }
+      ]
+    }
   },
   {
     id: 29,
@@ -345,7 +482,20 @@ export const events = [
     price: 1100,
     quantity: 70000,
     category: 'Concerts',
-    description: 'BTS – Love Yourself World Tour final night at SoFi Stadium, Inglewood. Floor: Sections A1-A4, B1-B5, C1-C5, D1-D4. 100 Level: Sections 100-124. Club: C106-C110, C113-C118, C126-C137, C215-C217, C221-C223, C242-C244, C248-C250. VIP: VIP111-113, VIP118-120, VIP131-132, VIP219-220, VIP245-247. 200: Sections 200-214, 224-240. 300: Sections 300-353. 400: Sections 400-457. 500: Sections 504-553. Floor Rows A-Z, AA..., 100 Rows 1-20, Club Rows 1-12, 200 Rows 1-18, 300 Rows 1-18, 400 Rows 1-22, 500 Rows 1-28. Seats 12-32 in lower bowl, 8-26 in upper.'
+    description: 'BTS – Love Yourself World Tour final night at SoFi Stadium, Inglewood.',
+    seatingConfig: {
+      venueName: 'SoFi Stadium',
+      sections: [
+        { name: 'Floor', type: 'floor', rows: ['A','B','C','D'], seatsPerRow: 36 },
+        { name: '100 Level', type: 'lower', rows: Array.from({length: 20}, (_, i) => String(i+1)), seatsPerRow: 32 },
+        { name: 'Club', type: 'club', rows: Array.from({length: 12}, (_, i) => String(i+1)), seatsPerRow: 28 },
+        { name: 'VIP', type: 'vip', rows: Array.from({length: 3}, (_, i) => String(i+1)), seatsPerRow: 24 },
+        { name: '200 Level', type: 'mezzanine', rows: Array.from({length: 18}, (_, i) => String(i+1)), seatsPerRow: 24 },
+        { name: '300 Level', type: 'upper', rows: Array.from({length: 18}, (_, i) => String(i+1)), seatsPerRow: 24 },
+        { name: '400 Level', type: 'upper', rows: Array.from({length: 22}, (_, i) => String(i+1)), seatsPerRow: 20 },
+        { name: '500 Level', type: 'upper', rows: Array.from({length: 28}, (_, i) => String(i+1)), seatsPerRow: 18 }
+      ]
+    }
   }
 ];
 
