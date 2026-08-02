@@ -120,8 +120,8 @@ const btsSeatSections = (event) => {
     const sections = new Set();
     config.sections.forEach(section => {
       const sectionName = section.name || '';
-      if (sectionName.includes('Floor')) {
-        section.rows.forEach(row => sections.add(`F${row}`));
+      if (sectionName.includes('Floor') && !sectionName.match(/\d+–\d+/)) {
+        section.rows.forEach(row => sections.add(row));
       } else if (sectionName.match(/\d+–\d+/)) {
         const match = sectionName.match(/(\d+)–(\d+)/);
         if (match) {

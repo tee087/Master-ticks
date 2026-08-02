@@ -26,12 +26,9 @@ const venueSeatingCatalog = {
   'Rogers Stadium - Toronto, ON, Canada': {
     venueName: 'Rogers Stadium',
     sections: [
-      { name: 'Floor (Sections A1–A8, B1–B8, C1–C8, D1–D8)', type: 'floor', rowGuide: 'Lettered rows', rows: ['A1-A8','B1-B8','C1-C8','D1-D8'], seatsPerRow: 48 },
-      { name: 'West Stand (Sections 101–107)', type: 'grandstand', rowGuide: 'Rows 1–8', rows: Array.from({ length: 8 }, (_, i) => String(i + 1)), seatsPerRow: 40 },
-      { name: 'North Stand (Sections 108–118)', type: 'grandstand', rowGuide: 'Rows 1–10', rows: Array.from({ length: 10 }, (_, i) => String(i + 1)), seatsPerRow: 36 },
-      { name: 'East Stand (Sections 119–125)', type: 'grandstand', rowGuide: 'Rows 1–7', rows: Array.from({ length: 7 }, (_, i) => String(i + 1)), seatsPerRow: 36 },
-      { name: 'South Stand (Sections 126–129)', type: 'grandstand', rowGuide: 'Rows 1–4', rows: Array.from({ length: 4 }, (_, i) => String(i + 1)), seatsPerRow: 32 },
-      { name: 'Accessible Sections (102 WCR, 107 WCR, 119 WCR, 124 WCR)', type: 'accessible', rowGuide: 'Wheelchair-accessible rows', rows: ['102 WCR','107 WCR','119 WCR','124 WCR'], seatsPerRow: 24 }
+      { name: 'Floor (Sections)', type: 'floor', rowGuide: 'Lettered rows', rows: ['A1','A2','A3','A4','A5','A6','A7','A8','B1','B2','B3','B4','B5','B6','B7','B8','C1','C2','C3','C4','C5','C6','C7','C8','D1','D2','D3','D4','D5','D6','D7','D8'], seatsPerRow: 48 },
+      { name: 'Sections 101–129', type: 'lower', rowGuide: 'Rows 1–10', rows: Array.from({ length: 29 }, (_, i) => String(101 + i)), seatsPerRow: 36 },
+      { name: 'Accessible Sections', type: 'accessible', rowGuide: 'Wheelchair-accessible rows', rows: ['102 WCR','107 WCR','119 WCR','124 WCR'], seatsPerRow: 24 }
     ]
   },
   'Soldier Field - Chicago, IL': {
