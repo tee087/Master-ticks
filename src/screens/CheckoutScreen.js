@@ -3,6 +3,7 @@ import { View, Text, Image, TouchableOpacity, StyleSheet, SafeAreaView, ScrollVi
 import { theme } from '../styles/theme';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { events } from '../data/mockData';
+import { resolveSeatingConfig } from '../data/seatingConfig';
 
 const CheckoutScreen = () => {
   const navigation = useNavigation();
@@ -39,6 +40,7 @@ const CheckoutScreen = () => {
     return (
       <View key={sectionIndex} style={styles.sectionContainer}>
         <Text style={styles.sectionHeader}>{section.name}</Text>
+        {section.rowGuide ? <Text style={styles.sectionHint}>{section.rowGuide}</Text> : null}
         {rows.map((row, rowIdx) => {
           const seatCount = typeof seatsPerRow === 'object' ? seatsPerRow[rowIdx] || seatsPerRow[0] : seatsPerRow;
           const emptySeats = Array.from({ length: seatCount }, (_, i) => i + 1);
@@ -47,7 +49,7 @@ const CheckoutScreen = () => {
               <Text style={styles.rowLabel}>{row}</Text>
               <View style={styles.seatRow}>
                 {emptySeats.map(seat => (
-                  <TouchableOpacity key={seat} style={styles.seat}>
+                  <TouchableOpacity key={`${row}-${seat}`} style={styles.seat}>
                     <Text style={styles.seatText}>{seat}</Text>
                   </TouchableOpacity>
                 ))}
@@ -59,7 +61,7 @@ const CheckoutScreen = () => {
     );
   };
 
-  const seatingConfig = event.seatingConfig || { sections: [] };
+  const seatingConfig = resolveSeatingConfig(event);
 
   return (
     <ScrollView style={styles.container}>
@@ -161,7 +163,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', padding: theme.spacing.md, borderRadius: 6, marginBottom: theme.spacing.md, ...theme.shadows.card,
   },
   sectionHeader: {
-    fontSize: 16, fontWeight: '700', color: theme.colors.text, marginBottom: theme.spacing.sm,
+    fontSize: 16, fontWeight: '700', color: theme.colors.text,
+  },
+  sectionHint: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginBottom: theme.spacing.sm,
   },
   rowContainer: {
     flexDirection: 'row', alignItems: 'center', marginBottom: theme.spacing.xs,
