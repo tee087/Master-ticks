@@ -181,7 +181,7 @@ export const events = [
   },
   {
     id: 16,
-    name: 'BTS – Love Yourself World Tour',
+    name: "BTS WORLD TOUR 'ARIRANG' IN EAST RUTHERFORD",
     image: './assets/bts-image.jpg',
     venue: 'MetLife Stadium - East Rutherford, NJ',
     date: '2026-08-01T20:00:00',
@@ -202,7 +202,7 @@ export const events = [
   },
   {
     id: 17,
-    name: 'BTS – Love Yourself World Tour (Sunday)',
+    name: "BTS WORLD TOUR 'ARIRANG' IN EAST RUTHERFORD",
     image: './assets/bts-image.jpg',
     venue: 'MetLife Stadium - East Rutherford, NJ',
     date: '2026-08-02T20:00:00',
@@ -223,7 +223,7 @@ export const events = [
   },
   {
     id: 18,
-    name: 'BTS – Love Yourself World Tour',
+    name: "BTS WORLD TOUR 'ARIRANG' IN BALTIMORE",
     image: './assets/bts-image.jpg',
     venue: 'M&T Bank Stadium - Baltimore, MD',
     date: '2026-08-10T20:00:00',
@@ -244,7 +244,7 @@ export const events = [
   },
   {
     id: 19,
-    name: 'BTS – Love Yourself World Tour',
+    name: "BTS WORLD TOUR 'ARIRANG' IN BALTIMORE",
     image: './assets/bts-image.jpg',
     venue: 'M&T Bank Stadium - Baltimore, MD',
     date: '2026-08-11T20:00:00',
@@ -265,7 +265,7 @@ export const events = [
   },
   {
     id: 20,
-    name: 'BTS – Love Yourself World Tour',
+    name: "BTS WORLD TOUR 'ARIRANG' IN ARLINGTON",
     image: './assets/bts-image.jpg',
     venue: 'AT&T Stadium - Arlington, TX',
     date: '2026-08-15T20:00:00',
@@ -288,7 +288,7 @@ export const events = [
   },
   {
     id: 21,
-    name: 'BTS – Love Yourself World Tour',
+    name: "BTS WORLD TOUR 'ARIRANG' IN ARLINGTON",
     image: './assets/bts-image.jpg',
     venue: 'AT&T Stadium - Arlington, TX',
     date: '2026-08-16T20:00:00',
@@ -311,7 +311,7 @@ export const events = [
   },
   {
     id: 22,
-    name: 'BTS – Love Yourself World Tour',
+    name: "BTS WORLD TOUR 'ARIRANG' IN TORONTO",
     image: './assets/bts-image.jpg',
     venue: 'Rogers Stadium - Toronto, ON, Canada',
     date: '2026-08-22T20:00:00',
@@ -333,7 +333,7 @@ export const events = [
   },
   {
     id: 23,
-    name: 'BTS – Love Yourself World Tour',
+    name: "BTS WORLD TOUR 'ARIRANG' IN TORONTO",
     image: './assets/bts-image.jpg',
     venue: 'Rogers Stadium - Toronto, ON, Canada',
     date: '2026-08-23T20:00:00',
@@ -355,7 +355,7 @@ export const events = [
   },
   {
     id: 24,
-    name: 'BTS – Love Yourself World Tour',
+    name: "BTS WORLD TOUR 'ARIRANG' IN CHICAGO",
     image: './assets/bts-image.jpg',
     venue: 'Soldier Field - Chicago, IL',
     date: '2026-08-27T20:00:00',
@@ -377,7 +377,7 @@ export const events = [
   },
   {
     id: 25,
-    name: 'BTS – Love Yourself World Tour',
+    name: "BTS WORLD TOUR 'ARIRANG' IN CHICAGO",
     image: './assets/bts-image.jpg',
     venue: 'Soldier Field - Chicago, IL',
     date: '2026-08-28T20:00:00',
@@ -399,7 +399,7 @@ export const events = [
   },
   {
     id: 26,
-    name: 'BTS – Love Yourself World Tour',
+    name: "BTS WORLD TOUR 'ARIRANG' IN INGLEWOOD",
     image: './assets/bts-image.jpg',
     venue: 'SoFi Stadium - Inglewood, CA',
     date: '2026-09-01T20:00:00',
@@ -424,7 +424,7 @@ export const events = [
   },
   {
     id: 27,
-    name: 'BTS – Love Yourself World Tour',
+    name: "BTS WORLD TOUR 'ARIRANG' IN INGLEWOOD",
     image: './assets/bts-image.jpg',
     venue: 'SoFi Stadium - Inglewood, CA',
     date: '2026-09-02T20:00:00',
@@ -449,7 +449,7 @@ export const events = [
   },
   {
     id: 28,
-    name: 'BTS – Love Yourself World Tour',
+    name: "BTS WORLD TOUR 'ARIRANG' IN INGLEWOOD",
     image: './assets/bts-image.jpg',
     venue: 'SoFi Stadium - Inglewood, CA',
     date: '2026-09-05T20:00:00',
@@ -474,7 +474,7 @@ export const events = [
   },
   {
     id: 29,
-    name: 'BTS – Love Yourself World Tour',
+    name: "BTS WORLD TOUR 'ARIRANG' IN INGLEWOOD",
     image: './assets/bts-image.jpg',
     venue: 'SoFi Stadium - Inglewood, CA',
     date: '2026-09-06T20:00:00',
