@@ -19,6 +19,38 @@ const eventImage = (event) => {
 
 export const isTicketmasterConfigured = () => Boolean(Constants?.manifest?.extra?.ticketmasterApiKey || process.env.EXPO_PUBLIC_TICKETMASTER_API_KEY);
 
+export const isLiveBackendConfigured = () => Boolean(backendUrl());
+
+const backendUrl = () =>
+  (Constants?.manifest?.extra?.ticketmasterBackendUrl ||
+    process.env.EXPO_PUBLIC_TICKETMASTER_BACKEND_URL ||
+    '').replace(/\/+$/, '');
+
+export const fetchLiveSnapshot = async () => {
+  const url = backendUrl();
+  if (!url) return { events: [], hasMore: false };
+  const res = await fetch(`${url}/events`, { headers: { 'Cache-Control': 'no-store' } });
+  if (!res.ok) throw new Error(`Live feed unavailable (${res.status})`);
+  const events = await res.json();
+  return { events: events.map(normalizeLiveEvent), hasMore: false };
+};
+
+const normalizeLiveEvent = (e) => ({
+  id: `tm-${e.id}`,
+  ticketmasterId: e.id,
+  name: e.name || '',
+  image: e.image,
+  venue: e.venue || 'Venue to be announced',
+  date: e.date,
+  dateLabel: e.dateLabel,
+  time: e.time || 'Time TBA',
+  price: e.price ?? 0,
+  category: e.category || 'Concerts',
+  description: e.description || 'Ticketmaster event listing.',
+  ticketUrl: e.ticketUrl,
+  isLiveTicketmasterEvent: true,
+});
+
 export const fetchTicketmasterEvents = async ({ keyword = '', category = 'events', page = 0, countryCode = 'US' }) => {
   const apiKey = Constants?.manifest?.extra?.ticketmasterApiKey || process.env.EXPO_PUBLIC_TICKETMASTER_API_KEY;
   if (!apiKey) return { events: [], hasMore: false };
@@ -51,5 +83,51 @@ export const fetchTicketmasterEvents = async ({ keyword = '', category = 'events
       isLiveTicketmasterEvent: true,
     })),
     hasMore: page + 1 < totalPages,
+  };
+};
+
+export const connectLiveEvents = (callback, { intervalMs = 4000 } = {}) => {
+  const base = backendUrl();
+  if (!base) return () => {};
+  const url = `${base}/events`;
+  const seen = new Map();
+  let stopped = false;
+
+  const signature = (e) =>
+    [e.name, e.venue, e.price, e.status, e.date].join('|');
+
+  const tick = async () => {
+    if (stopped) return;
+    try {
+      const res = await fetch(url, { headers: { 'Cache-Control': 'no-store' } });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const events = await res.json();
+      for (const event of events) {
+        const prev = seen.get(event.id);
+        const sig = signature(event);
+        if (!prev) {
+          seen.set(event.id, sig);
+          callback(normalizeLiveEvent(event), 'new');
+        } else if (prev !== sig) {
+          seen.set(event.id, sig);
+          callback(normalizeLiveEvent(event), 'update');
+        }
+      }
+      const current = new Set(events.map((e) => e.id));
+      for (const id of [...seen.keys()]) {
+        if (!current.has(id)) {
+          seen.delete(id);
+          callback({ id, ticketmasterId: id, isLiveTicketmasterEvent: true }, 'gone');
+        }
+      }
+    } catch (err) {
+      console.warn('live feed error', err);
+    }
+    if (!stopped) setTimeout(tick, intervalMs);
+  };
+
+  tick();
+  return () => {
+    stopped = true;
   };
 };

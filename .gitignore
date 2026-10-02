@@ -35,6 +35,12 @@ coverage/
 *.test.js
 *.spec.js
 
+# Python backend (Ticketmaster cf_clearance pattern)
+__pycache__/
+*.py[cod]
+backend/cookies.json
+*.egg-info/
+
 # Temporary
 tmp/
 temp/

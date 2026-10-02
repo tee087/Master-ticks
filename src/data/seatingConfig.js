@@ -53,6 +53,15 @@ const venueSeatingCatalog = {
       { name: '400 Level (Sections 400–457)', type: 'upper', rowGuide: 'Rows 1–22', rows: Array.from({ length: 22 }, (_, i) => String(i + 1)), seatsPerRow: 20 },
       { name: '500 Level (Sections 504–553)', type: 'upper', rowGuide: 'Rows 1–28', rows: Array.from({ length: 28 }, (_, i) => String(i + 1)), seatsPerRow: 18 }
     ]
+  },
+  'Sphere': {
+    venueName: 'Sphere',
+    sections: [
+      { name: 'Floor (Sections 1–16)', type: 'floor', rowGuide: 'Rows 1–16', rows: Array.from({ length: 16 }, (_, i) => String(i + 1)), seatsPerRow: 36 },
+      { name: '100 Level (Sections 100–141)', type: 'lower', rowGuide: 'Rows 1–30', rows: Array.from({ length: 30 }, (_, i) => String(i + 1)), seatsPerRow: 32 },
+      { name: '200 Level (Sections 200–242)', type: 'mezzanine', rowGuide: 'Rows 1–20', rows: Array.from({ length: 20 }, (_, i) => String(i + 1)), seatsPerRow: 28 },
+      { name: '300 Level (Sections 300–342)', type: 'upper', rowGuide: 'Rows 1–18', rows: Array.from({ length: 18 }, (_, i) => String(i + 1)), seatsPerRow: 24 }
+    ]
   }
 };
 
@@ -70,5 +79,6 @@ export const resolveSeatingConfig = (event) => {
     return eventSeatingConfig;
   }
 
-  return { sections: [] };
+  const byVenue = Object.values(venueSeatingCatalog).find((c) => c.venueName === normalizedVenue);
+  return byVenue || { sections: [] };
 };

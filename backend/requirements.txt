@@ -1,0 +1,8 @@
+# Python backend replicating the Arena-club cf_clearance bypass pattern for
+# the official Ticketmaster website real-time event feed.
+selenium>=4.6
+requests>=2.31
+
+# Optional: only needed if you want to auto-refresh cookies from a headless
+# browser without a pre-existing logged-in Chrome profile.
+# playwright>=1.40
