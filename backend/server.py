@@ -125,14 +125,24 @@ def start_tracker(cookies):
 
 def main():
     jar_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.json")
-    jar_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.json")
-    cookies = load_cookies() if os.path.exists(jar_path) else {}
-    if not cookies:
-        print("No cookies.json found -- starting in clean-IP mode (no cf_clearance/SID/BID).")
-        print("On a clean network the homepage SSR feed is served with browser headers alone.")
-        print("If this host's IP is Ticketmaster-flagged, run extract_cookies.py here first.")
-    else:
+    cookies = {}
+    if os.path.exists(jar_path):
+        cookies.update(load_cookies())
         print(f"Loaded {len(cookies)} cookie(s) from {jar_path}.")
+    env_jar = os.environ.get("TICKETMASTER_COOKIES_JSON")
+    if env_jar:
+        try:
+            env_cookies = json.loads(env_jar)
+        except json.JSONDecodeError as exc:
+            print(f"Invalid TICKETMASTER_COOKIES_JSON env var: {exc}")
+            return 1
+        cookies.update(env_cookies)
+        print(f"Loaded {len(env_cookies)} cookie(s) from TICKETMASTER_COOKIES_JSON env.")
+    if not cookies:
+        print("No cookies found -- starting in clean-IP mode (no cf_clearance/SID/BID).")
+        print("On a clean network the homepage SSR feed is served with browser headers alone.")
+        print("If this host's IP is Ticketmaster-flagged, set TICKETMASTER_COOKIES_JSON")
+        print("or run extract_cookies.py on an unflagged network first.")
     tracker = start_tracker(cookies)
     state = {"tracker": tracker}
     server = ThreadingHTTPServer((HOST, PORT), make_handler(state))
