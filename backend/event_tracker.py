@@ -51,9 +51,10 @@ def normalize_event(raw: Dict[str, Any]) -> Dict[str, Any]:
         return {}
 
     url = str(raw.get("url") or "")
+    is_public = isinstance(raw.get("images"), list) or bool(raw.get("_embedded")) or ("dates" in raw)
 
-    # --- SSR __NEXT_DATA__ event shape ---
-    if "/event/" in url or "venueCityName" in raw or "imageUrl" in raw:
+    # --- SSR __NEXT_DATA__ event shape (imageUrl / venueCityName / localDate) ---
+    if not is_public:
         image = raw.get("imageUrl")
         if not image:
             images = raw.get("images") or []

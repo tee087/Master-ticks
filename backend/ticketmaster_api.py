@@ -27,11 +27,15 @@ try:
     from .constants import (
         HOMEPAGE_URL, SEARCH_URL, EVENT_URL, INVENTORY_URL, SUGGEST_URL,
         DEFAULT_USER_AGENT, DEFAULT_SEC_CH_UA, DEFAULT_SEC_CH_UA_PLATFORM,
+        DISCOVERY_EVENTS_URL, DISCOVERY_API_KEY_ENV, DISCOVERY_WINDOW_DAYS,
+        DISCOVERY_MAX_SIZE,
     )
 except ImportError:
     from constants import (
         HOMEPAGE_URL, SEARCH_URL, EVENT_URL, INVENTORY_URL, SUGGEST_URL,
         DEFAULT_USER_AGENT, DEFAULT_SEC_CH_UA, DEFAULT_SEC_CH_UA_PLATFORM,
+        DISCOVERY_EVENTS_URL, DISCOVERY_API_KEY_ENV, DISCOVERY_WINDOW_DAYS,
+        DISCOVERY_MAX_SIZE,
     )
 
 _NEXT_DATA_RE = re.compile(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', re.S)
@@ -116,14 +120,18 @@ class TicketmasterClient:
     def search_events(self, keyword: str = "", country_code: str = "US",
                       page: int = 0, size: int = 20,
                       etag: Optional[str] = None) -> Optional[dict]:
-        """Return the real-time event listing from the homepage SSR payload.
+        """Return the real-time event listing.
 
-        ``keyword`` / ``size`` / ``page`` are applied client-side on the
-        server-rendered listing (the homepage exposes the live catalog the web
-        app hydrates). Returns ``{"_embedded": {"events": [...]}}`` so callers
-        can treat it like the Discovery API shape, plus an ``etag`` for
+        Primary source is the official public Discovery API when an API key is
+        configured (IP-agnostic, paginatable, supports a date window extending
+        to next year). Falls back to the homepage SSR ``__NEXT_DATA__`` payload
+        on a clean network when no key is present.
+
+        Returns ``{"_embedded": {"events": [...]}}`` plus an ``etag`` field for
         not-modified checks.
         """
+        if self.api_key:
+            return self._search_public(keyword, country_code, page, size)
         data = self._get_next_data()
         if isinstance(data, dict) and data.get("error"):
             return data
@@ -139,6 +147,31 @@ class TicketmasterClient:
             "_embedded": {"events": raw_events},
             "etag": _nextdata_version(data),
         }
+
+    def _search_public(self, keyword: str, country_code: str, page: int,
+                       size: int) -> Optional[dict]:
+        """Query the public Discovery API (key-based, IP-agnostic).
+
+        ``size`` is clamped to the API's 200-record maximum; callers page via
+        the ``page`` argument to harvest more (e.g. 150/page over 2 pages).
+        A start/end date window filters to upcoming events through next year.
+        """
+        from datetime import datetime, timezone, timedelta
+        now = datetime.now(timezone.utc)
+        params = {
+            "apikey": self.api_key,
+            "countryCode": country_code,
+            "size": str(min(int(size), DISCOVERY_MAX_SIZE)),
+            "page": str(int(page)),
+            "startDateTime": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "endDateTime": (now + timedelta(days=DISCOVERY_WINDOW_DAYS)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        }
+        if keyword.strip():
+            params["keyword"] = keyword.strip()
+        result = self._request("GET", DISCOVERY_EVENTS_URL, params=params)
+        if isinstance(result, dict) and result.get("_embedded"):
+            result["etag"] = f"public:{page}:{size}"
+        return result
 
     # ------------------------------------------------------------------ #
     # Real-time event detail / suggestions

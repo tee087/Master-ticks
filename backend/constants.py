@@ -46,6 +46,21 @@ SUGGEST_URL = "https://www.ticketmaster.com/api/v1/suggest"
 INVENTORY_URL = "https://app.ticketmaster.com/inventory-status/v1/availability"
 
 # ---------------------------------------------------------------------------
+# Official public Discovery API (IP-agnostic, key-based). When an API key is
+# available the client uses this instead of the flagged-IP SSR homepage, so the
+# hosted backend can serve real events from ANY host (including datacenter IPs)
+# with pagination and a date window extending to next year.
+# ---------------------------------------------------------------------------
+DISCOVERY_EVENTS_URL = "https://app.ticketmaster.com/discovery/v2/events.json"
+DISCOVERY_API_KEY_ENV = "TM_TICKETMASTER_API_KEY"
+
+# Default harvest window for the public feed: from now through ~next February
+# (covers events like BTS in Australia scheduled around Dec).
+DISCOVERY_WINDOW_DAYS = 150
+# Discovery API caps a single request at 200 records.
+DISCOVERY_MAX_SIZE = 200
+
+# ---------------------------------------------------------------------------
 # Cookies required to defeat the bot challenge.
 #
 # ``cf_clearance`` is the Cloudflare bot-challenge bypass token (the key piece
