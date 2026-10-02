@@ -125,10 +125,14 @@ def start_tracker(cookies):
 
 def main():
     jar_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.json")
-    if not os.path.exists(jar_path):
-        print("No cookies.json found. Run extract_cookies.py first.")
-        return 1
-    cookies = load_cookies()
+    jar_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.json")
+    cookies = load_cookies() if os.path.exists(jar_path) else {}
+    if not cookies:
+        print("No cookies.json found -- starting in clean-IP mode (no cf_clearance/SID/BID).")
+        print("On a clean network the homepage SSR feed is served with browser headers alone.")
+        print("If this host's IP is Ticketmaster-flagged, run extract_cookies.py here first.")
+    else:
+        print(f"Loaded {len(cookies)} cookie(s) from {jar_path}.")
     tracker = start_tracker(cookies)
     state = {"tracker": tracker}
     server = ThreadingHTTPServer((HOST, PORT), make_handler(state))
