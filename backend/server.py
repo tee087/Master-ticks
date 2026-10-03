@@ -21,6 +21,17 @@ from collections import deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Load optional backend/.env.local so the Discovery API key can be provided
+# without exporting env vars manually (file is gitignored).
+_here = os.path.dirname(os.path.abspath(__file__))
+if os.path.exists(os.path.join(_here, ".env.local")):
+    with open(os.path.join(_here, ".env.local")) as _fh:
+        for _line in _fh:
+            _line = _line.strip()
+            if not _line or _line.startswith("#") or "=" not in _line:
+                continue
+            _k, _, _v = _line.partition("=")
+            os.environ.setdefault(_k.strip(), _v.strip())
 from ticketmaster_api import load_cookies, from_cookies, DISCOVERY_API_KEY_ENV
 from event_tracker import EventTracker
 

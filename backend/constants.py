@@ -54,9 +54,10 @@ INVENTORY_URL = "https://app.ticketmaster.com/inventory-status/v1/availability"
 DISCOVERY_EVENTS_URL = "https://app.ticketmaster.com/discovery/v2/events.json"
 DISCOVERY_API_KEY_ENV = "TM_TICKETMASTER_API_KEY"
 
-# Default harvest window for the public feed: from now through ~next February
-# (covers events like BTS in Australia scheduled around Dec).
-DISCOVERY_WINDOW_DAYS = 150
+# Default harvest window for the public feed: from now through ~mid-next year
+# (covers events like BTS in Australia scheduled around Dec, plus the full
+# upcoming season). Extend with TM_HARVEST_DAYS for the complete catalog.
+DISCOVERY_WINDOW_DAYS = 365
 # Discovery API caps a single request at 200 records.
 DISCOVERY_MAX_SIZE = 200
 
