@@ -203,7 +203,7 @@ class EventTracker:
                 attempts += 1
                 self._log(f"search request error page={page} attempt={attempts}: {exc}")
                 if attempts < 3:
-                    self._stop.wait(2.0)
+                    self._stop.wait(3.0 * attempts)
         else:
             return []
 
@@ -248,7 +248,10 @@ class EventTracker:
         return page_ids
 
     def _poll_once(self, pages: int):
-        """Sync every page, then emit gone for events absent this cycle."""
+        """Sync every page, emitting per-page new/update deltas as they arrive;
+        events from successfully-fetched pages are retained even if a later
+        page fails a transient DNS blip. At the end, emit 'gone' for any
+        previously-seen event not present in this poll cycle."""
         cycle_ids = set()
         for page in range(pages):
             if self._stop.is_set():
@@ -264,18 +267,6 @@ class EventTracker:
             self.on_event(event, kind)
         except Exception as exc:  # render failures must not kill the loop
             self._log(f"render error: {exc}")
-
-    def _poll_once(self, pages: int):
-        """Sync every page, then emit gone for events absent this cycle."""
-        cycle_ids = set()
-        for page in range(pages):
-            if self._stop.is_set():
-                return
-            cycle_ids.update(self._sync_page(page))
-        with self._lock:
-            gone = [eid for eid in list(self._seen.keys()) if eid not in cycle_ids]
-            for eid in gone:
-                self._emit(self._seen.pop(eid), "gone")
 
     # ------------------------------------------------------------------ #
     # Public control

@@ -40,6 +40,9 @@ SYNTH = {
 
 def main():
     client = TicketmasterClient()
+    # server import loads backend/.env.local; force the synthetic SSR path so
+    # this end-to-end test never calls the live Discovery API.
+    client.api_key = None
     client._get_next_data = lambda url=None: SYNTH
 
     tracker = EventTracker(client, poll_interval=0.5, on_event=sse_server.broadcast)
