@@ -21,7 +21,7 @@ from collections import deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ticketmaster_api import load_cookies, from_cookies
+from ticketmaster_api import load_cookies, from_cookies, DISCOVERY_API_KEY_ENV
 from event_tracker import EventTracker
 
 
@@ -114,10 +114,20 @@ def make_handler(tracker_started):
 
 
 def start_tracker(cookies):
+    api_key = os.environ.get(DISCOVERY_API_KEY_ENV)
+    # With a key, harvest up to 300 upcoming events (150/page over 2 pages; the
+    # Discovery API caps one request at 200). Without a key, fall back to the
+    # single-page homepage SSR listing (clean-network path).
+    page_size = int(os.getenv("TM_PAGE_SIZE", "150" if api_key else "20"))
+    pages = int(os.getenv("TM_TRACK_PAGES", "2" if api_key else str(PAGES)))
+    source = "public Discovery API (key-based, IP-agnostic)" if api_key else "homepage SSR (clean-IP)"
+    print(f"Live feed source: {source} | page_size={page_size} pages={pages} "
+          f"-> up to {page_size * pages} events/poll")
     client = from_cookies(cookies)
-    tracker = EventTracker(client, poll_interval=POLL_INTERVAL, on_event=broadcast)
+    tracker = EventTracker(client, poll_interval=POLL_INTERVAL,
+                           page_size=page_size, on_event=broadcast)
     thread = threading.Thread(
-        target=tracker.start, kwargs={"pages": PAGES}, daemon=True
+        target=tracker.start, kwargs={"pages": pages}, daemon=True
     )
     thread.start()
     return tracker
