@@ -186,15 +186,25 @@ class EventTracker:
     def _sync_page(self, page: int) -> List[str]:
         """Sync one page of results; emit new/update deltas, return seen ids."""
         etag = self._etags.get(page)
-        try:
-            payload = self.client.search_events(
-                keyword=self.keyword, country_code=self.country_code,
-                page=page, size=self.page_size, etag=etag,
-            )
-        except (requests.exceptions.RequestException, ValueError) as exc:
-            # Transient network failure (e.g. connection reset by a blocked
-            # upstream) must NOT kill the poll thread -- log and retry later.
-            self._log(f"search request error page={page}: {exc}")
+        attempts = 0
+        payload = None
+        while attempts < 3:
+            try:
+                payload = self.client.search_events(
+                    keyword=self.keyword, country_code=self.country_code,
+                    page=page, size=self.page_size, etag=etag,
+                )
+                break
+            except (requests.exceptions.RequestException, ValueError) as exc:
+                # Transient network failure (DNS hiccup, connection reset by a
+                # blocked upstream, etc.) must NOT kill the poll thread. Log,
+                # back off briefly, and retry the same page so a momentary DNS
+                # blip doesn't drop an entire page of live events.
+                attempts += 1
+                self._log(f"search request error page={page} attempt={attempts}: {exc}")
+                if attempts < 3:
+                    self._stop.wait(2.0)
+        else:
             return []
 
         if isinstance(payload, dict) and payload.get("error"):
