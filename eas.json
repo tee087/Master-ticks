@@ -14,7 +14,10 @@
     },
     "production": {
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "env": {
+          "EXPO_PUBLIC_TICKETMASTER_BACKEND_URL": "https://master-ticks.onrender.com"
+        }
       }
     }
   }
