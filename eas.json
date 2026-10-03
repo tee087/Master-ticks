@@ -1,15 +1,21 @@
 {
+  "cli": {
+    "version": ">=3.28.0"
+  },
   "build": {
     "preview": {
+      "developmentClient": false,
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "env": {
+          "EXPO_PUBLIC_TICKETMASTER_BACKEND_URL": "https://master-ticks.onrender.com"
+        }
       }
     },
-    "development": {
+    "production": {
       "android": {
-        "buildType": "apk"
+        "buildType": "app-bundle"
       }
-    },
-    "production": {}
+    }
   }
 }
