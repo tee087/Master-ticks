@@ -17,6 +17,7 @@ import sys
 import json
 import threading
 import time
+from urllib.parse import urlparse, parse_qs
 from collections import deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -33,7 +34,7 @@ if os.path.exists(os.path.join(_here, ".env.local")):
             _k, _, _v = _line.partition("=")
             os.environ.setdefault(_k.strip(), _v.strip())
 from ticketmaster_api import load_cookies, from_cookies, DISCOVERY_API_KEY_ENV
-from event_tracker import EventTracker
+from event_tracker import EventTracker, normalize_event, _extract_events
 
 
 HOST = os.getenv("TM_HOST", "0.0.0.0")
@@ -83,11 +84,34 @@ def make_handler(tracker_started):
             self.wfile.write(body)
 
         def do_GET(self):
-            path = self.path.split("?", 1)[0]
+            parsed = urlparse(self.path)
+            path = parsed.path
             if path == "/health":
                 self._send(200, {"status": "ok", "clients": len(_clients)})
             elif path == "/events":
                 self._send(200, tracker_started["tracker"].snapshot())
+            elif path == "/search":
+                params = parse_qs(parsed.query)
+                keyword = (params.get("keyword") or [""])[0].strip()
+                country_code = (params.get("countryCode") or ["US"])[0].strip() or "US"
+                try:
+                    size = max(1, min(50, int((params.get("size") or [25])[0])))
+                except ValueError:
+                    size = 25
+                if not keyword:
+                    self._send(200, [])
+                    return
+                try:
+                    result = tracker_started["tracker"].client.search_events(
+                        keyword=keyword, country_code=country_code, page=0, size=size
+                    )
+                except Exception:
+                    self._send(502, {"error": "ticketmaster_search_failed"})
+                    return
+                if isinstance(result, dict) and result.get("error"):
+                    self._send(502, {"error": "ticketmaster_search_failed"})
+                    return
+                self._send(200, [normalize_event(e) for e in _extract_events(result)])
             elif path == "/events/stream":
                 self._stream()
             else:

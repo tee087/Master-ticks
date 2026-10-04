@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { events } from './src/data/mockData';
 import { importedTicketmasterEvents } from './src/data/importedTicketmasterEvents';
-import { fetchTicketmasterEvents, isTicketmasterConfigured, isLiveBackendConfigured, connectLiveEvents } from './src/services/ticketmaster';
+import { fetchTicketmasterEvents, searchLiveEvents, isTicketmasterConfigured, isLiveBackendConfigured, connectLiveEvents } from './src/services/ticketmaster';
 
 const { width, height } = Dimensions.get('window');
 const btsImage = require('./assets/bts-image.jpg');
@@ -281,7 +281,7 @@ const App = () => {
     if (previous) setScreen(previous);
     else setScreen('home');
   };
-  const [category, setCategory] = useState('events'); const [query, setQuery] = useState(''); const [visibleCount, setVisibleCount] = useState(4); const [selected, setSelected] = useState(null); const [quantity, setQuantity] = useState(1); const [chosenSeats, setChosenSeats] = useState([]); const [selectedSection, setSelectedSection] = useState(null); const [selectedRow, setSelectedRow] = useState(null); const [payment, setPayment] = useState('Card'); const [tickets, setTickets] = useState([]); const [transferOrder, setTransferOrder] = useState(null); const [location, setLocation] = useState(ticketmasterLocations[0]); const [liveEvents, setLiveEvents] = useState([]); const [livePage, setLivePage] = useState(0); const [liveHasMore, setLiveHasMore] = useState(false); const [liveLoading, setLiveLoading] = useState(false); const [ticketsNavVisible, setTicketsNavVisible] = useState(true); const ticketScrollOffset = useRef(0);
+  const [category, setCategory] = useState('events'); const [query, setQuery] = useState(''); const [visibleCount, setVisibleCount] = useState(4); const [selected, setSelected] = useState(null); const [quantity, setQuantity] = useState(1); const [chosenSeats, setChosenSeats] = useState([]); const [selectedSection, setSelectedSection] = useState(null); const [selectedRow, setSelectedRow] = useState(null); const [payment, setPayment] = useState('Card'); const [tickets, setTickets] = useState([]); const [transferOrder, setTransferOrder] = useState(null); const [location, setLocation] = useState(ticketmasterLocations[0]); const [liveEvents, setLiveEvents] = useState([]); const [searchedLiveEvents, setSearchedLiveEvents] = useState([]); const [livePage, setLivePage] = useState(0); const [liveHasMore, setLiveHasMore] = useState(false); const [liveLoading, setLiveLoading] = useState(false); const [ticketsNavVisible, setTicketsNavVisible] = useState(true); const ticketScrollOffset = useRef(0);
   useEffect(() => { let active = true; (async () => { const values = await AsyncStorage.multiGet(['tm_profile', 'tm_tickets', 'tm_settings']); if (!active) return; const savedProfile = values[0][1]; const savedTickets = values[1][1]; const savedSettings = values[2][1]; if (savedProfile) setProfile(JSON.parse(savedProfile)); if (savedTickets) setTickets(JSON.parse(savedTickets)); if (savedSettings) setSettings(JSON.parse(savedSettings)); setReady(true); })().catch(() => { if (active) setReady(true); }); return () => { active = false; }; }, []);
   useEffect(() => { if (ready && screen === null) setScreen(profile?.name ? 'home' : 'register'); }, [ready, profile, screen]);
   useEffect(() => { if (screen === 'tickets') { ticketScrollOffset.current = 0; setTicketsNavVisible(true); } }, [screen]);
@@ -309,6 +309,23 @@ const App = () => {
   useEffect(() => { if (isLiveBackendConfigured()) return; if (!isTicketmasterConfigured()) return; const timer = setTimeout(() => loadLiveEvents(0), query ? 450 : 0); return () => clearTimeout(timer); }, [category, query, location.code, loadLiveEvents]);
   useEffect(() => {
     if (!isLiveBackendConfigured()) return;
+    const keyword = query.trim();
+    if (!keyword) { setSearchedLiveEvents([]); return; }
+    setSearchedLiveEvents([]);
+    let active = true;
+    const timer = setTimeout(async () => {
+      try {
+        const results = await searchLiveEvents({ keyword, countryCode: location.code });
+        if (active) setSearchedLiveEvents(results);
+      } catch (error) {
+        console.warn('Ticketmaster search error', error);
+        if (active) setSearchedLiveEvents([]);
+      }
+    }, 350);
+    return () => { active = false; clearTimeout(timer); };
+  }, [query, location.code]);
+  useEffect(() => {
+    if (!isLiveBackendConfigured()) return;
     const unsub = connectLiveEvents((event, kind) => {
       setLiveEvents((prev) => {
         if (kind === 'gone') return prev.filter((e) => e.ticketmasterId !== event.ticketmasterId);
@@ -319,12 +336,15 @@ const App = () => {
     return unsub;
   }, []);
   const displayedEvents = useMemo(() => {
+    if (isLiveBackendConfigured() && query.trim()) {
+      return category === 'events' ? searchedLiveEvents : searchedLiveEvents.filter((event) => event.category === category);
+    }
     if (!liveEvents.length) return filtered;
     const q = query.trim().toLowerCase();
     if (!q) return liveEvents;
     return liveEvents.filter((e) =>
       (`${e.name || ''} ${e.venue || ''} ${e.city || ''}`).toLowerCase().includes(q));
-  }, [liveEvents, filtered, query]);
+  }, [liveEvents, filtered, searchedLiveEvents, query, category]);
   const formatMoney = (amount) => money(amount, settings.currency);
   const subtotal = selected ? selected.price * quantity : 0; const fees = Math.ceil(subtotal * feeRate / 100); const total = subtotal + fees;
   const openEvent = useCallback((event) => { setSelected(event); setQuantity(1); setChosenSeats([]); setSelectedSection(null); setSelectedRow(null); setScreen('detail'); }, []);

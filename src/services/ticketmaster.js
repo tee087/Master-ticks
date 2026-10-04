@@ -35,6 +35,17 @@ export const fetchLiveSnapshot = async () => {
   return { events: events.map(normalizeLiveEvent), hasMore: false };
 };
 
+export const searchLiveEvents = async ({ keyword, countryCode = 'US' }) => {
+  const url = backendUrl();
+  if (!url || !keyword?.trim()) return [];
+  const params = new URLSearchParams({ keyword: keyword.trim(), countryCode, size: '50' });
+  const res = await fetch(`${url}/search?${params.toString()}`, {
+    headers: { 'Cache-Control': 'no-store' },
+  });
+  if (!res.ok) throw new Error(`Live search unavailable (${res.status})`);
+  return (await res.json()).map(normalizeLiveEvent);
+};
+
 const normalizeLiveEvent = (e) => ({
   id: `tm-${e.id}`,
   ticketmasterId: e.id,
