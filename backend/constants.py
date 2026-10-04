@@ -7,6 +7,8 @@ from behind Cloudflare / Akamai bot protection, so requests require a valid
 obtains -- exactly the bypass the Arena-club scraper relies on.
 """
 
+import os
+
 # ---------------------------------------------------------------------------
 # Real-time data source strategy
 #
@@ -54,10 +56,9 @@ INVENTORY_URL = "https://app.ticketmaster.com/inventory-status/v1/availability"
 DISCOVERY_EVENTS_URL = "https://app.ticketmaster.com/discovery/v2/events.json"
 DISCOVERY_API_KEY_ENV = "TM_TICKETMASTER_API_KEY"
 
-# Default harvest window for the public feed: from now through ~mid-next year
-# (covers events like BTS in Australia scheduled around Dec, plus the full
-# upcoming season). Extend with TM_HARVEST_DAYS for the complete catalog.
-DISCOVERY_WINDOW_DAYS = 365
+# Default discovery window: from now through the next two years. Override with
+# TM_HARVEST_DAYS if Ticketmaster starts listing dates farther into the future.
+DISCOVERY_WINDOW_DAYS = int(os.getenv("TM_HARVEST_DAYS", "730"))
 # Discovery API caps a single request at 200 records.
 DISCOVERY_MAX_SIZE = 200
 

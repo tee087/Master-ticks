@@ -35,21 +35,35 @@ export const fetchLiveSnapshot = async () => {
   return { events: events.map(normalizeLiveEvent), hasMore: false };
 };
 
-export const searchLiveEvents = async ({ keyword, countryCode = 'US', page = 0 }) => {
+export const searchLiveEvents = async ({ keyword, countryCode = 'US', countryCodes, page = 0 }) => {
   const url = backendUrl();
   if (!url || !keyword?.trim()) return [];
-  const params = new URLSearchParams({ keyword: keyword.trim(), countryCode, page: String(page), size: '200' });
-  const res = await fetch(`${url}/search?${params.toString()}`, {
-    headers: { 'Cache-Control': 'no-store' },
+  const countries = [...new Set((countryCodes?.length ? countryCodes : [countryCode]).filter(Boolean))];
+  const responses = [];
+  for (let start = 0; start < countries.length; start += 5) {
+    const batch = await Promise.allSettled(countries.slice(start, start + 5).map(async (code) => {
+      const params = new URLSearchParams({ keyword: keyword.trim(), countryCode: code, page: String(page), size: '200' });
+      const res = await fetch(`${url}/search?${params.toString()}`, {
+        headers: { 'Cache-Control': 'no-store' },
+      });
+      if (!res.ok) throw new Error(`Live search unavailable (${res.status})`);
+      return res.json();
+    }));
+    responses.push(...batch);
+  }
+  const payloads = responses.filter((result) => result.status === 'fulfilled').map((result) => result.value);
+  if (!payloads.length) throw responses.find((result) => result.status === 'rejected')?.reason || new Error('Live search unavailable');
+  const eventsById = new Map();
+  const pagination = [];
+  payloads.forEach((payload) => {
+    const events = Array.isArray(payload) ? payload : (payload.events || []);
+    events.map(normalizeLiveEvent).forEach((event) => eventsById.set(event.ticketmasterId || event.id, event));
+    pagination.push(payload.page || {});
   });
-  if (!res.ok) throw new Error(`Live search unavailable (${res.status})`);
-  const payload = await res.json();
-  const events = Array.isArray(payload) ? payload : (payload.events || []);
-  const pagination = payload.page || {};
   return {
-    events: events.map(normalizeLiveEvent),
-    page: pagination.number ?? page,
-    hasMore: Number(pagination.number ?? page) + 1 < Number(pagination.totalPages || 1),
+    events: [...eventsById.values()],
+    page,
+    hasMore: pagination.some((item) => page + 1 < Number(item.totalPages || 1)),
   };
 };
 
