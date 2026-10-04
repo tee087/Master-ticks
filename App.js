@@ -12,6 +12,26 @@ import { fetchTicketmasterEvents, searchLiveEvents, isTicketmasterConfigured, is
 const { width, height } = Dimensions.get('window');
 const btsImage = require('./assets/bts-image.jpg');
 const eventImageSource = (image) => image === './assets/bts-image.jpg' ? btsImage : { uri: image };
+const OfficialVenueLocation = ({ event }) => {
+  const location = event.venueLocation;
+  const mapTarget = location?.latitude != null && location?.longitude != null
+    ? `${location.latitude},${location.longitude}`
+    : event.venueLocationText || event.venue;
+  const openDirections = async () => {
+    try {
+      await Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapTarget)}`);
+    } catch {
+      Alert.alert('Directions unavailable', 'Please try again after checking your internet connection.');
+    }
+  };
+  return <View style={styles.officialVenueLocation}>
+    <Text style={styles.officialVenueName}>{event.venue}</Text>
+    <Text style={styles.officialVenueAddress}>{event.venueLocationText || [event.city, event.stateCode, event.postalCode, event.countryCode].filter(Boolean).join(', ') || 'Address not provided by Ticketmaster'}</Text>
+    <TouchableOpacity accessibilityLabel="Open official venue location in maps" onPress={openDirections} style={styles.officialDirections}>
+      <Text style={styles.officialDirectionsText}>Open venue location</Text>
+    </TouchableOpacity>
+  </View>;
+};
 const venueCoordinates = {
   'MetLife Stadium - East Rutherford, NJ': { latitude: 40.8135, longitude: -74.0745 },
 };
@@ -281,7 +301,7 @@ const App = () => {
     if (previous) setScreen(previous);
     else setScreen('home');
   };
-  const [category, setCategory] = useState('events'); const [query, setQuery] = useState(''); const [visibleCount, setVisibleCount] = useState(4); const [selected, setSelected] = useState(null); const [quantity, setQuantity] = useState(1); const [chosenSeats, setChosenSeats] = useState([]); const [selectedSection, setSelectedSection] = useState(null); const [selectedRow, setSelectedRow] = useState(null); const [payment, setPayment] = useState('Card'); const [tickets, setTickets] = useState([]); const [transferOrder, setTransferOrder] = useState(null); const [location, setLocation] = useState(ticketmasterLocations[0]); const [liveEvents, setLiveEvents] = useState([]); const [searchedLiveEvents, setSearchedLiveEvents] = useState([]); const [livePage, setLivePage] = useState(0); const [liveHasMore, setLiveHasMore] = useState(false); const [liveLoading, setLiveLoading] = useState(false); const [ticketsNavVisible, setTicketsNavVisible] = useState(true); const ticketScrollOffset = useRef(0);
+  const [category, setCategory] = useState('events'); const [query, setQuery] = useState(''); const [visibleCount, setVisibleCount] = useState(4); const [selected, setSelected] = useState(null); const [quantity, setQuantity] = useState(1); const [chosenSeats, setChosenSeats] = useState([]); const [selectedSection, setSelectedSection] = useState(null); const [selectedRow, setSelectedRow] = useState(null); const [payment, setPayment] = useState('Card'); const [tickets, setTickets] = useState([]); const [transferOrder, setTransferOrder] = useState(null); const [location, setLocation] = useState(ticketmasterLocations[0]); const [liveEvents, setLiveEvents] = useState([]); const [searchedLiveEvents, setSearchedLiveEvents] = useState([]); const [searchedLivePage, setSearchedLivePage] = useState(0); const [searchedLiveHasMore, setSearchedLiveHasMore] = useState(false); const [liveSearchLoading, setLiveSearchLoading] = useState(false); const [livePage, setLivePage] = useState(0); const [liveHasMore, setLiveHasMore] = useState(false); const [liveLoading, setLiveLoading] = useState(false); const [ticketsNavVisible, setTicketsNavVisible] = useState(true); const ticketScrollOffset = useRef(0);
   useEffect(() => { let active = true; (async () => { const values = await AsyncStorage.multiGet(['tm_profile', 'tm_tickets', 'tm_settings']); if (!active) return; const savedProfile = values[0][1]; const savedTickets = values[1][1]; const savedSettings = values[2][1]; if (savedProfile) setProfile(JSON.parse(savedProfile)); if (savedTickets) setTickets(JSON.parse(savedTickets)); if (savedSettings) setSettings(JSON.parse(savedSettings)); setReady(true); })().catch(() => { if (active) setReady(true); }); return () => { active = false; }; }, []);
   useEffect(() => { if (ready && screen === null) setScreen(profile?.name ? 'home' : 'register'); }, [ready, profile, screen]);
   useEffect(() => { if (screen === 'tickets') { ticketScrollOffset.current = 0; setTicketsNavVisible(true); } }, [screen]);
@@ -310,13 +330,19 @@ const App = () => {
   useEffect(() => {
     if (!isLiveBackendConfigured()) return;
     const keyword = query.trim();
-    if (!keyword) { setSearchedLiveEvents([]); return; }
+    if (!keyword) { setSearchedLiveEvents([]); setSearchedLivePage(0); setSearchedLiveHasMore(false); return; }
     setSearchedLiveEvents([]);
+    setSearchedLivePage(0);
+    setSearchedLiveHasMore(false);
     let active = true;
     const timer = setTimeout(async () => {
       try {
-        const results = await searchLiveEvents({ keyword, countryCode: location.code });
-        if (active) setSearchedLiveEvents(results);
+        const result = await searchLiveEvents({ keyword, countryCode: location.code, page: 0 });
+        if (active) {
+          setSearchedLiveEvents(result.events);
+          setSearchedLivePage(result.page);
+          setSearchedLiveHasMore(result.hasMore);
+        }
       } catch (error) {
         console.warn('Ticketmaster search error', error);
         if (active) setSearchedLiveEvents([]);
@@ -324,6 +350,21 @@ const App = () => {
     }, 350);
     return () => { active = false; clearTimeout(timer); };
   }, [query, location.code]);
+  const loadMoreLiveSearch = useCallback(async () => {
+    if (!isLiveBackendConfigured() || !query.trim() || !searchedLiveHasMore || liveSearchLoading) return;
+    setLiveSearchLoading(true);
+    try {
+      const result = await searchLiveEvents({ keyword: query.trim(), countryCode: location.code, page: searchedLivePage + 1 });
+      setSearchedLiveEvents((current) => [...current, ...result.events]);
+      setSearchedLivePage(result.page);
+      setSearchedLiveHasMore(result.hasMore);
+    } catch (error) {
+      console.warn('More Ticketmaster search results unavailable', error);
+      setSearchedLiveHasMore(false);
+    } finally {
+      setLiveSearchLoading(false);
+    }
+  }, [query, location.code, searchedLivePage, searchedLiveHasMore, liveSearchLoading]);
   useEffect(() => {
     if (!isLiveBackendConfigured()) return;
     const unsub = connectLiveEvents((event, kind) => {
@@ -336,8 +377,9 @@ const App = () => {
     return unsub;
   }, []);
   const displayedEvents = useMemo(() => {
-    if (isLiveBackendConfigured() && query.trim()) {
-      return category === 'events' ? searchedLiveEvents : searchedLiveEvents.filter((event) => event.category === category);
+    if (isLiveBackendConfigured()) {
+      const sourceEvents = query.trim() ? searchedLiveEvents : liveEvents;
+      return category === 'events' ? sourceEvents : sourceEvents.filter((event) => event.category === category);
     }
     if (!liveEvents.length) return filtered;
     const q = query.trim().toLowerCase();
@@ -345,9 +387,19 @@ const App = () => {
     return liveEvents.filter((e) =>
       (`${e.name || ''} ${e.venue || ''} ${e.city || ''}`).toLowerCase().includes(q));
   }, [liveEvents, filtered, searchedLiveEvents, query, category]);
+  useEffect(() => {
+    if (query.trim() && searchedLiveHasMore && visibleCount >= displayedEvents.length) {
+      loadMoreLiveSearch();
+    }
+  }, [query, searchedLiveHasMore, visibleCount, displayedEvents.length, loadMoreLiveSearch]);
   const formatMoney = (amount) => money(amount, settings.currency);
   const subtotal = selected ? selected.price * quantity : 0; const fees = Math.ceil(subtotal * feeRate / 100); const total = subtotal + fees;
   const openEvent = useCallback((event) => { setSelected(event); setQuantity(1); setChosenSeats([]); setSelectedSection(null); setSelectedRow(null); setScreen('detail'); }, []);
+  const openOfficialTicketPage = useCallback(async () => {
+    if (!selected?.ticketUrl) return;
+    try { await Linking.openURL(selected.ticketUrl); }
+    catch { Alert.alert('Ticketmaster unavailable', 'Check your internet connection and try again.'); }
+  }, [selected]);
   const chooseBest = () => { const section = selectedSection || '101'; const row = selectedRow || 'A'; setChosenSeats(Array.from({ length: quantity }, (_, i) => section === 'GA' ? `GA-GA-${i + 1}` : `${section}-${row}-${i + 1}`)); };
   const toggleSeat = (seat) => setChosenSeats((all) => all.includes(seat) ? all.filter((item) => item !== seat) : all.length < quantity ? [...all, seat] : all);
   const completeOrder = async () => { const order = { id: `TM-${Date.now().toString().slice(-7)}`, event: selected, quantity, seats: chosenSeats, payment, total, purchasedAt: new Date().toISOString() }; const next = [order, ...tickets]; setTickets(next); setScreen('tickets'); try { await AsyncStorage.setItem('tm_tickets', JSON.stringify(next)); } catch (_) {} };
@@ -357,7 +409,7 @@ const App = () => {
   if (screen === 'register') return <SafeAreaView style={styles.register}><View style={styles.registerTop}><Text style={styles.registerTitle}>Create Profile</Text></View><ScrollView contentContainerStyle={styles.registerBody}><Text style={styles.eyebrow}>WELCOME TO TM</Text><Text style={styles.registerText}>Add your name to personalize your experience.</Text><Text style={styles.inputLabel}>YOUR NAME</Text><TextInput value={name} onChangeText={setName} placeholder="How should we call you?" style={styles.input} /><TouchableOpacity onPress={() => { if (!name.trim()) return; const next = { name: name.trim() }; AsyncStorage.setItem('tm_profile', JSON.stringify(next)); setProfile(next); setScreen('home'); }} style={[styles.primary, !name.trim() && styles.disabled]}><Text style={styles.primaryText}>Create Profile</Text></TouchableOpacity></ScrollView></SafeAreaView>;
   if (screen === 'profile') return top(<ScrollView contentContainerStyle={styles.page}><Text style={styles.pageTitle}>Your profile</Text><Text style={styles.pageLead}>Choose a photo and it will stay on your home screen until you replace it.</Text><TouchableOpacity onPress={chooseProfilePhoto} style={styles.photoPicker}>{profile?.image ? <Image source={{ uri: profile.image }} style={styles.photoPickerImage} /> : <Text style={styles.photoPickerInitial}>{(name || profile?.name || 'U').charAt(0).toUpperCase()}</Text>}<View style={styles.photoEdit}><Text style={styles.photoEditText}>Change photo</Text></View></TouchableOpacity><Text style={styles.inputLabel}>YOUR NAME</Text><TextInput value={name} onChangeText={setName} placeholder="How should we call you?" style={styles.input} /><TouchableOpacity onPress={async () => { await saveProfile(); setScreen('home'); }} style={[styles.primary, !name.trim() && styles.disabled]}><Text style={styles.primaryText}>Save profile</Text></TouchableOpacity><TouchableOpacity onPress={() => setScreen('tickets')} style={styles.myTicketsLink}><Text style={styles.myTicketsLinkText}>View My Tickets</Text></TouchableOpacity><TouchableOpacity onPress={() => setScreen('settings')} style={styles.myTicketsLink}><Text style={styles.myTicketsLinkText}>Settings</Text></TouchableOpacity></ScrollView>);
   if (screen === 'settings') return top(<ScrollView contentContainerStyle={styles.page}><Text style={styles.pageTitle}>Settings</Text><Text style={styles.pageLead}>Choose how ticket prices are displayed. Your preference is saved on this device.</Text><Text style={styles.inputLabel}>DISPLAY CURRENCY</Text>{Object.entries(currencyOptions).map(([code, option]) => <TouchableOpacity key={code} onPress={async () => { const next = { currency: code }; setSettings(next); await AsyncStorage.setItem('tm_settings', JSON.stringify(next)); }} style={[styles.currencyOption, settings.currency === code && styles.currencyOptionSelected]}><View><Text style={styles.currencyCode}>{code} · {option.symbol}</Text><Text style={styles.currencyLabel}>{option.label}</Text></View><View style={[styles.currencyRadio, settings.currency === code && styles.currencyRadioSelected]}>{settings.currency === code && <Text style={styles.currencyCheck}>✓</Text>}</View></TouchableOpacity>)}<Text style={styles.settingsNote}>Ticketmaster prices are supplied in USD. Other currencies use an estimated display conversion and are finalized by the ticket provider at checkout.</Text></ScrollView>);
-  if (screen === 'detail') return top(<ScrollView showsVerticalScrollIndicator={false}><Image source={eventImageSource(selected.image)} style={styles.detailImage} /><View style={styles.detail}><Text style={styles.type}>{selected.category}</Text><Text style={styles.detailTitle}>{selected.name}</Text><Text style={styles.detailDate}>{longDay(selected)} · {selected.time}</Text><Text style={styles.detailVenue}>{selected.venue}</Text><VenueMap venue={selected.venue} /><View style={styles.rule} /><Text style={styles.about}>About this event</Text>{[16, 17].includes(selected.id) ? <ScrollView nestedScrollEnabled showsVerticalScrollIndicator style={styles.aboutScroll}><Text style={styles.description}>{selected.description}</Text></ScrollView> : <Text style={styles.description}>{selected.description}</Text>}</View><View style={styles.sticky}><TouchableOpacity onPress={() => setScreen('quantity')} style={styles.primary}><Text style={styles.primaryText}>Buy tickets from {formatMoney(selected.price)}</Text></TouchableOpacity></View></ScrollView>);
+  if (screen === 'detail') return top(<ScrollView showsVerticalScrollIndicator={false}><Image source={eventImageSource(selected.image)} style={styles.detailImage} /><View style={styles.detail}><Text style={styles.type}>{selected.category}</Text><Text style={styles.detailTitle}>{selected.name}</Text><Text style={styles.detailDate}>{longDay(selected)} · {selected.time}</Text><OfficialVenueLocation event={selected} />{selected.isLiveTicketmasterEvent && <><View style={styles.rule} /><Text style={styles.about}>Official Ticketmaster seating map</Text>{selected.seatMapUrl ? <Image source={{ uri: selected.seatMapUrl }} resizeMode="contain" style={styles.officialSeatMap} /> : <Text style={styles.description}>Ticketmaster has not provided a static seating map for this event. Open the official ticket page to view its current sections and available seats.</Text>}<Text style={styles.description}>Section labels and available seats vary by event. Ticketmaster shows the current seat inventory during ticket selection.</Text></>}<View style={styles.rule} /><Text style={styles.about}>About this event</Text>{[16, 17].includes(selected.id) ? <ScrollView nestedScrollEnabled showsVerticalScrollIndicator style={styles.aboutScroll}><Text style={styles.description}>{selected.description}</Text></ScrollView> : <Text style={styles.description}>{selected.description}</Text>}</View><View style={styles.sticky}><TouchableOpacity onPress={selected.isLiveTicketmasterEvent ? openOfficialTicketPage : () => setScreen('quantity')} style={styles.primary}><Text style={styles.primaryText}>{selected.isLiveTicketmasterEvent ? 'Choose seats on Ticketmaster' : `Buy tickets from ${formatMoney(selected.price)}`}</Text></TouchableOpacity></View></ScrollView>);
   if (screen === 'quantity') return top(<ScrollView contentContainerStyle={styles.page}><Text style={styles.step}>STEP 1 OF 4</Text><Text style={styles.pageTitle}>How many tickets?</Text><Text style={styles.pageLead}>{selected.name}</Text><View style={styles.quantityCard}><Text style={styles.quantityLabel}>General admission · {formatMoney(selected.price)} each</Text><View style={styles.bigStepper}><TouchableOpacity onPress={() => setQuantity(Math.max(1, quantity - 1))} style={styles.bigStep}><Text style={styles.bigStepText}>−</Text></TouchableOpacity><Text style={styles.bigQuantity}>{quantity}</Text><TouchableOpacity onPress={() => setQuantity(Math.min(40, quantity + 1))} style={styles.bigStep}><Text style={styles.bigStepText}>+</Text></TouchableOpacity></View><Text style={styles.helper}>You can select up to 40 tickets.</Text></View><TouchableOpacity onPress={() => setScreen('seats')} style={styles.primary}><Text style={styles.primaryText}>Continue to seats</Text></TouchableOpacity></ScrollView>);
   if (screen === 'seats') return top(<ScrollView contentContainerStyle={styles.page}><Text style={styles.step}>STEP 2 OF 4</Text><Text style={styles.pageTitle}>Pick your seats</Text><Text style={styles.pageLead}>Choose a section, row, then {quantity} seat{quantity > 1 ? 's' : ''}.</Text><Text style={styles.selectionHeading}>1. SECTION</Text>{isBTSEvent(selected) && <Text style={styles.btsSectionHelper}>BTS ticket type is assigned automatically: Sections 1–50 VIP Soundcheck, 51–100 VIP, and 101+ ARMY Membership Presale.</Text>}<View style={styles.choiceGrid}>{(isBTSEvent(selected) ? btsSeatSections(selected) : (resolveSeatingConfig(selected).sections.length ? btsSeatSections(selected) : seatSections)).map((section) => <TouchableOpacity key={section} onPress={() => { setSelectedSection(section); setSelectedRow(section === 'GA' ? 'GA' : null); setChosenSeats([]); }} style={[styles.choiceChip, selectedSection === section && styles.choiceChipSelected]}><Text style={[styles.choiceChipText, selectedSection === section && styles.choiceChipTextSelected]}>{section === 'GA' ? 'General Admission' : `Section ${section}`}</Text></TouchableOpacity>)}</View>{isBTSEvent(selected) && selectedSection && <View style={styles.btsTicketType}><Text style={styles.btsTicketTypeLabel}>YOUR BTS TICKET TYPE</Text><Text style={styles.btsTicketTypeValue}>{btsTicketType(selectedSection)}</Text></View>}{selectedSection && selectedSection !== 'GA' && <><Text style={styles.selectionHeading}>2. ROW</Text><View style={styles.choiceGrid}>{seatRows.map((row) => <TouchableOpacity key={row} onPress={() => { setSelectedRow(row); setChosenSeats([]); }} style={[styles.rowChip, selectedRow === row && styles.choiceChipSelected]}><Text style={[styles.choiceChipText, selectedRow === row && styles.choiceChipTextSelected]}>{row}</Text></TouchableOpacity>)}</View></>}{selectedSection && selectedRow && <><Text style={styles.selectionHeading}>{selectedSection === 'GA' ? '2. ADMISSION TICKETS' : '3. SEAT NUMBER'}</Text><View style={styles.stage}><Text style={styles.stageText}>{selectedSection === 'GA' ? 'GENERAL ADMISSION' : 'STAGE'}</Text></View><View style={styles.seatGrid}>{seatNumbers.map((number) => { const seatKey = selectedSection === 'GA' ? `GA-GA-${number}` : `${selectedSection}-${selectedRow}-${number}`; return <TouchableOpacity key={seatKey} onPress={() => toggleSeat(seatKey)} style={[styles.seat, chosenSeats.includes(seatKey) && styles.seatSelected, chosenSeats.length >= quantity && !chosenSeats.includes(seatKey) && styles.seatMuted]}><Text style={[styles.seatText, chosenSeats.includes(seatKey) && styles.seatTextSelected]}>{number}</Text></TouchableOpacity>; })}</View></>}<TouchableOpacity onPress={chooseBest} style={styles.best}><Text style={styles.bestTitle}>Best available</Text><Text style={styles.bestCopy}>Select {selectedSection ? `in ${selectedSection}${selectedRow ? `, Row ${selectedRow}` : ''}` : 'the best location'} for me</Text></TouchableOpacity><Text style={styles.selection}>{chosenSeats.length} of {quantity} selected</Text><TouchableOpacity disabled={chosenSeats.length !== quantity} onPress={() => setScreen('review')} style={[styles.primary, chosenSeats.length !== quantity && styles.disabled]}><Text style={styles.primaryText}>Reserve tickets</Text></TouchableOpacity></ScrollView>);
   if (screen === 'review') return top(<ScrollView contentContainerStyle={styles.page}><Text style={styles.step}>STEP 3 OF 4</Text><Text style={styles.pageTitle}>Review order</Text><View style={styles.orderCard}><Text style={styles.orderName}>{selected.name}</Text><Text style={styles.orderInfo}>{longDay(selected)} · {selected.time}</Text><Text style={styles.orderInfo}>{selected.venue}</Text><Text style={styles.orderInfo}>Seats: {chosenSeats.join(', ')}</Text><View style={styles.rule} /><View style={styles.totalRow}><Text>Tickets ({quantity})</Text><Text>{formatMoney(subtotal)}</Text></View><View style={styles.totalRow}><Text>Service fees</Text><Text>{formatMoney(fees)}</Text></View><View style={styles.totalRow}><Text style={styles.totalText}>Order total</Text><Text style={styles.totalText}>{formatMoney(total)}</Text></View></View><Text style={styles.step}>STEP 4 OF 4</Text><Text style={styles.paymentTitle}>Choose payment method</Text>{['Card', 'Apple Pay', 'Google Pay'].map((method) => <TouchableOpacity key={method} onPress={() => setPayment(method)} style={[styles.paymentOption, payment === method && styles.paymentSelected]}><View style={styles.radio}>{payment === method && <View style={styles.radioInner} />}</View><Text style={styles.paymentName}>{method}</Text><Text style={styles.paymentReady}>Ready</Text></TouchableOpacity>)}<TouchableOpacity onPress={() => setScreen('checkout')} style={styles.primary}><Text style={styles.primaryText}>Continue to checkout</Text></TouchableOpacity></ScrollView>);
@@ -444,6 +496,7 @@ const styles = StyleSheet.create({
   referenceSeatValue: { color: '#101010', fontSize: 24, fontWeight: '900', marginTop: 8 },
   moreOptionsTitle: { color: '#111', fontSize: 24, fontWeight: '900', marginHorizontal: 20, marginTop: 35, marginBottom: 34 },
   ticketMapTitle: { color: '#555', fontSize: 12, fontWeight: '900', letterSpacing: .7, marginHorizontal: 20, marginTop: 18, marginBottom: 10 },
+  officialVenueLocation: { marginTop: 14, padding: 14, borderRadius: 6, backgroundColor: '#f2f6fb' }, officialVenueName: { color: '#101828', fontWeight: '800', fontSize: 15 }, officialVenueAddress: { color: '#475467', lineHeight: 20, marginTop: 5 }, officialDirections: { alignSelf: 'flex-start', paddingVertical: 9 }, officialDirectionsText: { color: '#026cdf', fontWeight: '800' }, officialSeatMap: { width: '100%', height: 260, marginVertical: 12, backgroundColor: '#f2f4f7' },
   ticketMap: { height: 230, marginHorizontal: 20, marginBottom: 25, backgroundColor: '#e7edf4', borderRadius: 14, borderWidth: 1, borderColor: '#e0e5eb', overflow: 'hidden', position: 'relative' },
   ticketMapDirections: { position: 'absolute', right: 12, bottom: 12, backgroundColor: '#fff', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 9, shadowColor: '#101828', shadowOpacity: .18, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
   ticketMapDirectionsText: { color: '#075be0', fontSize: 13, fontWeight: '900' },

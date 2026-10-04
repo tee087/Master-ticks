@@ -160,6 +160,7 @@ class TicketmasterClient:
         now = datetime.now(timezone.utc)
         params = {
             "apikey": self.api_key,
+            "source": "ticketmaster",
             "countryCode": country_code,
             "size": str(min(int(size), DISCOVERY_MAX_SIZE)),
             "page": str(int(page)),

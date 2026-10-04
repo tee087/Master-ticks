@@ -60,18 +60,41 @@ def normalize_event(raw: Dict[str, Any]) -> Dict[str, Any]:
             images = raw.get("images") or []
             image = images[0].get("url") if images else None
         date_label = raw.get("localDate")
+        ticket_url = raw.get("ticketUrl") or url
+        if ticket_url.startswith("/"):
+            ticket_url = "https://www.ticketmaster.com" + ticket_url
+        latitude = raw.get("venueLatitude") or raw.get("latitude")
+        longitude = raw.get("venueLongitude") or raw.get("longitude")
+        venue_location = None
+        try:
+            if latitude is not None and longitude is not None:
+                venue_location = {"latitude": float(latitude), "longitude": float(longitude)}
+        except (TypeError, ValueError):
+            pass
+        city = raw.get("venueCityName") or raw.get("city")
+        state_code = raw.get("venueStateCode") or raw.get("stateCode")
+        country_code = raw.get("venueCountryCode") or raw.get("countryCode")
+        address = raw.get("venueAddress") or raw.get("venueStreet") or ""
+        location_text = ", ".join(part for part in (address, city, state_code, country_code) if part)
         return {
             "id": url.rstrip("/").split("/")[-1] or raw.get("id"),
             "name": raw.get("name", ""),
             "image": image,
             "venue": raw.get("venue") or raw.get("venueName") or "Venue to be announced",
-            "city": raw.get("venueCityName"),
+            "city": city,
+            "stateCode": state_code,
+            "countryCode": country_code,
+            "postalCode": raw.get("venuePostalCode") or raw.get("postalCode"),
+            "venueAddress": address,
+            "venueLocationText": location_text,
+            "venueLocation": venue_location,
+            "seatMapUrl": raw.get("seatMapUrl") or (raw.get("seatmap") or {}).get("staticUrl"),
             "date": date_label,
             "dateLabel": date_label,
             "time": raw.get("localTime") or "Time TBA",
             "price": (raw.get("priceRanges") or [{}])[0].get("min", 0) if raw.get("priceRanges") else 0,
             "category": _category_from_name(raw.get("name", ""), raw.get("segment", "")),
-            "ticketUrl": url,
+            "ticketUrl": ticket_url,
             "status": raw.get("status"),
         }
 
@@ -87,6 +110,21 @@ def normalize_event(raw: Dict[str, Any]) -> Dict[str, Any]:
     if not image and images:
         image = images[0].get("url")
     venue = raw.get("_embedded", {}).get("venues", [{}])[0]
+    address = venue.get("address", {}).get("line1") or ""
+    city = (venue.get("city", {}) or {}).get("name")
+    state_code = (venue.get("state", {}) or {}).get("stateCode")
+    country_code = (venue.get("country", {}) or {}).get("countryCode")
+    postal_code = venue.get("postalCode")
+    parts = [address, city, state_code, postal_code, country_code]
+    location_text = ", ".join(str(part) for part in parts if part)
+    venue_location = venue.get("location") or {}
+    try:
+        venue_location = {
+            "latitude": float(venue_location["latitude"]),
+            "longitude": float(venue_location["longitude"]),
+        }
+    except (KeyError, TypeError, ValueError):
+        venue_location = None
     classifications = raw.get("classifications", [{}])
     segment = (classifications[0].get("segment", {}).get("name") or "").lower()
     if "sport" in segment:
@@ -109,7 +147,14 @@ def normalize_event(raw: Dict[str, Any]) -> Dict[str, Any]:
         "name": raw.get("name", ""),
         "image": image,
         "venue": (venue.get("name") or "Venue to be announced"),
-        "city": (venue.get("city", {}) or {}).get("name"),
+        "city": city,
+        "stateCode": state_code,
+        "countryCode": country_code,
+        "postalCode": postal_code,
+        "venueAddress": address,
+        "venueLocationText": location_text,
+        "venueLocation": venue_location,
+        "seatMapUrl": (raw.get("seatmap") or {}).get("staticUrl"),
         "date": start.get("dateTime") or start.get("localDate"),
         "dateLabel": start.get("localDate"),
         "time": start.get("localTime") or "Time TBA",

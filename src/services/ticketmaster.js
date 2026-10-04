@@ -35,15 +35,22 @@ export const fetchLiveSnapshot = async () => {
   return { events: events.map(normalizeLiveEvent), hasMore: false };
 };
 
-export const searchLiveEvents = async ({ keyword, countryCode = 'US' }) => {
+export const searchLiveEvents = async ({ keyword, countryCode = 'US', page = 0 }) => {
   const url = backendUrl();
   if (!url || !keyword?.trim()) return [];
-  const params = new URLSearchParams({ keyword: keyword.trim(), countryCode, size: '50' });
+  const params = new URLSearchParams({ keyword: keyword.trim(), countryCode, page: String(page), size: '200' });
   const res = await fetch(`${url}/search?${params.toString()}`, {
     headers: { 'Cache-Control': 'no-store' },
   });
   if (!res.ok) throw new Error(`Live search unavailable (${res.status})`);
-  return (await res.json()).map(normalizeLiveEvent);
+  const payload = await res.json();
+  const events = Array.isArray(payload) ? payload : (payload.events || []);
+  const pagination = payload.page || {};
+  return {
+    events: events.map(normalizeLiveEvent),
+    page: pagination.number ?? page,
+    hasMore: Number(pagination.number ?? page) + 1 < Number(pagination.totalPages || 1),
+  };
 };
 
 const normalizeLiveEvent = (e) => ({
@@ -52,6 +59,13 @@ const normalizeLiveEvent = (e) => ({
   name: e.name || '',
   image: e.image,
   venue: e.venue || 'Venue to be announced',
+  venueAddress: e.venueAddress || '',
+  venueLocationText: e.venueLocationText || [e.venueAddress, e.city, e.stateCode, e.postalCode, e.countryCode].filter(Boolean).join(', '),
+  venueLocation: e.venueLocation || null,
+  stateCode: e.stateCode || '',
+  countryCode: e.countryCode || '',
+  postalCode: e.postalCode || '',
+  seatMapUrl: e.seatMapUrl || null,
   date: e.date,
   dateLabel: e.dateLabel,
   time: e.time || 'Time TBA',
@@ -66,7 +80,7 @@ export const fetchTicketmasterEvents = async ({ keyword = '', category = 'events
   const apiKey = Constants?.manifest?.extra?.ticketmasterApiKey || process.env.EXPO_PUBLIC_TICKETMASTER_API_KEY;
   if (!apiKey) return { events: [], hasMore: false };
 
-  const params = new URLSearchParams({ apikey: apiKey, size: '20', page: String(page), countryCode });
+  const params = new URLSearchParams({ apikey: apiKey, source: 'ticketmaster', size: '20', page: String(page), countryCode });
   if (keyword.trim()) params.set('keyword', keyword.trim());
   const classifications = { Concerts: 'music', Sports: 'sports', Theater: 'arts & theatre', Festivals: 'miscellaneous' };
   if (classifications[category]) params.set('classificationName', classifications[category]);
@@ -84,6 +98,13 @@ export const fetchTicketmasterEvents = async ({ keyword = '', category = 'events
       name: event.name,
       image: eventImage(event),
       venue: event._embedded?.venues?.[0]?.name || 'Venue to be announced',
+      venueAddress: event._embedded?.venues?.[0]?.address?.line1 || '',
+      venueLocationText: [event._embedded?.venues?.[0]?.address?.line1, event._embedded?.venues?.[0]?.city?.name, event._embedded?.venues?.[0]?.state?.stateCode, event._embedded?.venues?.[0]?.postalCode, event._embedded?.venues?.[0]?.country?.countryCode].filter(Boolean).join(', '),
+      venueLocation: event._embedded?.venues?.[0]?.location || null,
+      stateCode: event._embedded?.venues?.[0]?.state?.stateCode || '',
+      countryCode: event._embedded?.venues?.[0]?.country?.countryCode || countryCode,
+      postalCode: event._embedded?.venues?.[0]?.postalCode || '',
+      seatMapUrl: event.seatmap?.staticUrl || null,
       date: event.dates?.start?.dateTime || event.dates?.start?.localDate,
       dateLabel: event.dates?.start?.localDate,
       time: event.dates?.start?.localTime || 'Time TBA',

@@ -95,15 +95,19 @@ def make_handler(tracker_started):
                 keyword = (params.get("keyword") or [""])[0].strip()
                 country_code = (params.get("countryCode") or ["US"])[0].strip() or "US"
                 try:
-                    size = max(1, min(50, int((params.get("size") or [25])[0])))
+                    page = max(0, int((params.get("page") or [0])[0]))
                 except ValueError:
-                    size = 25
+                    page = 0
+                try:
+                    size = max(1, min(200, int((params.get("size") or [200])[0])))
+                except ValueError:
+                    size = 200
                 if not keyword:
                     self._send(200, [])
                     return
                 try:
                     result = tracker_started["tracker"].client.search_events(
-                        keyword=keyword, country_code=country_code, page=0, size=size
+                        keyword=keyword, country_code=country_code, page=page, size=size
                     )
                 except Exception:
                     self._send(502, {"error": "ticketmaster_search_failed"})
@@ -111,7 +115,15 @@ def make_handler(tracker_started):
                 if isinstance(result, dict) and result.get("error"):
                     self._send(502, {"error": "ticketmaster_search_failed"})
                     return
-                self._send(200, [normalize_event(e) for e in _extract_events(result)])
+                api_page = result.get("page", {}) if isinstance(result, dict) else {}
+                self._send(200, {
+                    "events": [normalize_event(e) for e in _extract_events(result)],
+                    "page": {
+                        "number": api_page.get("number", page),
+                        "totalPages": api_page.get("totalPages", 1),
+                        "totalElements": api_page.get("totalElements"),
+                    },
+                })
             elif path == "/events/stream":
                 self._stream()
             else:
