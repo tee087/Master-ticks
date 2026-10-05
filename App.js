@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image, ImageBackground, Dimensions, ActivityIndicator, Linking, Alert, Modal, Platform } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import { View, Text, FlatList, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image, ImageBackground, Dimensions, ActivityIndicator, Linking, Alert, Modal } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Svg, Path, Rect, Circle, Line, LinearGradient, Stop, Text as SvgText, Defs } from 'react-native-svg';
 
@@ -12,7 +11,7 @@ import { fetchTicketmasterEvents, searchLiveEvents, isTicketmasterConfigured, is
 
 const { width, height } = Dimensions.get('window');
 const btsImage = require('./assets/bts-image.jpg');
-const eventImageSource = (image) => image === './assets/bts-image.jpg' ? btsImage : { uri: image };
+const eventImageSource = (image) => image === './assets/bts-image.jpg' ? btsImage : image ? { uri: image } : btsImage;
 const encodeSeatValue = (section, row, seat) => [section, row, seat].join('::');
 const parseSeatValue = (value) => {
   const text = String(value || '');
@@ -87,6 +86,29 @@ const VenueMap = ({ event }) => {
   const hasCoordinate = coordinate?.latitude != null && coordinate?.longitude != null
     && Number.isFinite(latitude) && Number.isFinite(longitude)
     && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180;
+  const mapWidth = width - 40;
+  const mapHeight = 270;
+  const tileSize = 256;
+  const zoom = 15;
+  let mapTiles = [];
+  if (hasCoordinate) {
+    const safeLatitude = Math.max(-85.0511, Math.min(85.0511, latitude));
+    const scale = 2 ** zoom;
+    const worldX = ((longitude + 180) / 360) * scale;
+    const latitudeRadians = (safeLatitude * Math.PI) / 180;
+    const worldY = ((1 - Math.log(Math.tan(latitudeRadians) + (1 / Math.cos(latitudeRadians))) / Math.PI) / 2) * scale;
+    const centerTileX = Math.floor(worldX);
+    const centerTileY = Math.floor(worldY);
+    const offsetX = worldX - centerTileX;
+    const offsetY = worldY - centerTileY;
+    mapTiles = [-1, 0, 1].flatMap((dx) => [-1, 0, 1].map((dy) => ({
+      key: `${dx}-${dy}`,
+      url: `https://tile.openstreetmap.org/${zoom}/${(centerTileX + dx + scale) % scale}/${centerTileY + dy}.png`,
+      left: (mapWidth / 2) + ((dx - offsetX) * tileSize),
+      top: (mapHeight / 2) + ((dy - offsetY) * tileSize),
+      visible: centerTileY + dy >= 0 && centerTileY + dy < scale,
+    })).filter((tile) => tile.visible));
+  }
   const destination = hasCoordinate
     ? `${latitude},${longitude}`
     : event.venueLocationText || [event.venue, event.city, event.stateCode, event.countryCode].filter(Boolean).join(', ');
@@ -99,26 +121,10 @@ const VenueMap = ({ event }) => {
     try { await Linking.openURL(event.ticketUrl); } catch { Alert.alert('Ticketmaster unavailable', 'Check your internet connection and try again.'); }
   };
   return <View style={styles.ticketMap}>
-    {hasCoordinate && Platform.OS !== 'web'
-      ? <MapView
-          key={`${latitude}-${longitude}`}
-          style={styles.venueDirectionMap}
-          initialRegion={{ latitude, longitude, latitudeDelta: 0.012, longitudeDelta: 0.012 }}
-          mapType="standard"
-          showsCompass
-          showsBuildings
-          showsPointsOfInterest
-          toolbarEnabled={false}
-          moveOnMarkerPress={false}
-        >
-          <Marker coordinate={{ latitude, longitude }} title={event.venue} description={event.venueLocationText || undefined} />
-        </MapView>
-      : <View style={styles.venueMapUnavailable}>
-          <Text style={styles.venueMapUnavailableText}>{hasCoordinate
-            ? 'Open directions to view this venue on a map.'
-            : 'Exact venue coordinates are unavailable. Open directions to find the venue.'}</Text>
-        </View>}
-    <View pointerEvents="none" style={styles.venueMapCaption}><Text style={styles.venueMapName} numberOfLines={1}>{event.venue}</Text><Text style={styles.venueMapAddress} numberOfLines={2}>{event.venueLocationText || 'Address unavailable'}</Text><Text style={styles.venueMapAttribution}>Venue location from Ticketmaster</Text></View>
+    {hasCoordinate
+      ? <View style={styles.venueDirectionMap}>{mapTiles.map((tile) => <Image key={tile.key} source={{ uri: tile.url }} resizeMode="stretch" style={[styles.venueMapTile, { left: tile.left, top: tile.top }]} />)}<View style={styles.venueMapPin}><View style={styles.venueMapPinDot} /></View></View>
+      : <View style={styles.venueMapUnavailable}><Text style={styles.venueMapUnavailableText}>Exact venue coordinates are unavailable. Open directions to find the venue.</Text></View>}
+    <View pointerEvents="none" style={styles.venueMapCaption}><Text style={styles.venueMapName} numberOfLines={1}>{event.venue}</Text><Text style={styles.venueMapAddress} numberOfLines={2}>{event.venueLocationText || 'Address unavailable'}</Text><Text style={styles.venueMapAttribution}>Venue location from Ticketmaster · Map © OpenStreetMap</Text></View>
     <TouchableOpacity accessibilityRole="button" accessibilityLabel="Open venue directions" onPress={openVenueDirections} style={styles.ticketMapDirections}><Text style={styles.ticketMapDirectionsText}>Get directions</Text></TouchableOpacity>
     {!!event.ticketUrl && <TouchableOpacity accessibilityRole="button" accessibilityLabel="Open event listing" onPress={openOfficialEvent} style={styles.officialEventLink}><Text style={styles.officialEventLinkText}>{event.ticketUrl.toLowerCase().includes('ticketmaster.') ? 'Ticketmaster event' : 'Event listing'}</Text></TouchableOpacity>}
   </View>;
@@ -219,7 +225,8 @@ const TicketBarcodeModal = ({ order, visible, onClose }) => {
   </Modal>;
 };
 
-const TicketCard = ({ order, onTransfer, onDelete, onBack }) => {
+const TicketCard = ({ order: savedOrder, onTransfer, onDelete, onBack }) => {
+  const order = { ...savedOrder, event: savedOrder?.event || {}, seats: Array.isArray(savedOrder?.seats) ? savedOrder.seats : [] };
   const [activeTab, setActiveTab] = useState('tickets');
   const [message, setMessage] = useState('');
   const [showBarcode, setShowBarcode] = useState(false);
@@ -524,7 +531,7 @@ const styles = StyleSheet.create({
   ticketMapTitle: { color: '#555', fontSize: 12, fontWeight: '900', letterSpacing: .7, marginHorizontal: 20, marginTop: 18, marginBottom: 10 },
   officialVenueLocation: { marginTop: 14, padding: 14, borderRadius: 6, backgroundColor: '#f2f6fb' }, officialVenueName: { color: '#101828', fontWeight: '800', fontSize: 15 }, officialVenueAddress: { color: '#475467', lineHeight: 20, marginTop: 5 }, officialDirections: { alignSelf: 'flex-start', paddingVertical: 9 }, officialDirectionsText: { color: '#026cdf', fontWeight: '800' }, officialSeatMap: { width: '100%', height: 260, marginVertical: 12, backgroundColor: '#f2f4f7' }, seatMapLink: { marginVertical: 12, padding: 14, backgroundColor: '#f2f6fb', borderRadius: 6 }, seatAvailabilityNote: { color: '#667085', fontSize: 12, lineHeight: 18, marginTop: 12, marginBottom: 14 },
   detailScreen: { flex: 1 }, seatEntryContainer: { flex: 1 }, seatEntryFooter: { backgroundColor: '#fff', paddingHorizontal: 18, paddingTop: 9, paddingBottom: 12, borderTopWidth: 1, borderColor: '#e0e5eb' },
-  ticketMap: { height: 270, marginHorizontal: 20, marginBottom: 25, backgroundColor: '#e7edf4', borderRadius: 14, borderWidth: 1, borderColor: '#e0e5eb', overflow: 'hidden', position: 'relative' }, venueDirectionMap: { width: '100%', height: 270 }, venueMapPin: { position: 'absolute', width: 24, height: 24, left: '50%', top: '50%', marginLeft: -12, marginTop: -20, borderRadius: 12, backgroundColor: '#d92d20', borderWidth: 2, borderColor: '#fff', alignItems: 'center', justifyContent: 'center', elevation: 4 }, venueMapPinDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#fff' }, venueMapUnavailable: { height: 270, justifyContent: 'center', alignItems: 'center', padding: 20 }, venueMapUnavailableText: { color: '#475467', fontSize: 13, textAlign: 'center' }, venueMapCaption: { position: 'absolute', top: 10, left: 10, right: 10, padding: 9, borderRadius: 6, backgroundColor: 'rgba(255,255,255,.94)' }, venueMapName: { color: '#101828', fontSize: 13, fontWeight: '900' }, venueMapAddress: { color: '#475467', fontSize: 11, marginTop: 2 }, venueMapAttribution: { color: '#667085', fontSize: 9, marginTop: 4 }, officialEventLink: { position: 'absolute', left: 12, bottom: 12, backgroundColor: '#fff', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 9, elevation: 3 }, officialEventLinkText: { color: '#026cdf', fontSize: 12, fontWeight: '900' },
+  ticketMap: { height: 270, marginHorizontal: 20, marginBottom: 25, backgroundColor: '#e7edf4', borderRadius: 14, borderWidth: 1, borderColor: '#e0e5eb', overflow: 'hidden', position: 'relative' }, venueDirectionMap: { width: '100%', height: 270, overflow: 'hidden' }, venueMapTile: { position: 'absolute', width: 256, height: 256 }, venueMapPin: { position: 'absolute', width: 24, height: 24, left: '50%', top: '50%', marginLeft: -12, marginTop: -20, borderRadius: 12, backgroundColor: '#d92d20', borderWidth: 2, borderColor: '#fff', alignItems: 'center', justifyContent: 'center', elevation: 4 }, venueMapPinDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#fff' }, venueMapUnavailable: { height: 270, justifyContent: 'center', alignItems: 'center', padding: 20 }, venueMapUnavailableText: { color: '#475467', fontSize: 13, textAlign: 'center' }, venueMapCaption: { position: 'absolute', top: 10, left: 10, right: 10, padding: 9, borderRadius: 6, backgroundColor: 'rgba(255,255,255,.94)' }, venueMapName: { color: '#101828', fontSize: 13, fontWeight: '900' }, venueMapAddress: { color: '#475467', fontSize: 11, marginTop: 2 }, venueMapAttribution: { color: '#667085', fontSize: 9, marginTop: 4 }, officialEventLink: { position: 'absolute', left: 12, bottom: 12, backgroundColor: '#fff', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 9, elevation: 3 }, officialEventLinkText: { color: '#026cdf', fontSize: 12, fontWeight: '900' },
   ticketMapDirections: { position: 'absolute', right: 12, bottom: 12, backgroundColor: '#fff', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 9, shadowColor: '#101828', shadowOpacity: .18, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
   ticketMapDirectionsText: { color: '#075be0', fontSize: 13, fontWeight: '900' },
   directionsButton: { minHeight: 44, backgroundColor: '#fff', borderRadius: 4, justifyContent: 'center', alignItems: 'center', marginBottom: 16, marginHorizontal: 18, borderWidth: 1, borderColor: '#075be0' },
