@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image, ImageBackground, Dimensions, ActivityIndicator, Linking, Alert, Modal } from 'react-native';
+import { View, Text, FlatList, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image, ImageBackground, Dimensions, ActivityIndicator, Linking, Alert, Modal, Platform } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Svg, Path, Rect, Circle, Line, LinearGradient, Stop, Text as SvgText, Defs } from 'react-native-svg';
 
@@ -12,14 +13,6 @@ import { fetchTicketmasterEvents, searchLiveEvents, isTicketmasterConfigured, is
 const { width, height } = Dimensions.get('window');
 const btsImage = require('./assets/bts-image.jpg');
 const eventImageSource = (image) => image === './assets/bts-image.jpg' ? btsImage : { uri: image };
-const openOfficialTicketPage = async (event) => {
-  if (!event?.ticketUrl) {
-    Alert.alert('Tickets unavailable', 'Ticketmaster did not provide a ticket page for this event.');
-    return;
-  }
-  try { await Linking.openURL(event.ticketUrl); }
-  catch { Alert.alert('Ticketmaster unavailable', 'Check your internet connection and try again.'); }
-};
 const encodeSeatValue = (section, row, seat) => [section, row, seat].join('::');
 const parseSeatValue = (value) => {
   const text = String(value || '');
@@ -89,34 +82,14 @@ const OfficialSeatEntry = ({ event, quantity, onReserve }) => {
 };
 const VenueMap = ({ event }) => {
   const coordinate = event.venueLocation;
-  const hasCoordinate = Number.isFinite(Number(coordinate?.latitude)) && Number.isFinite(Number(coordinate?.longitude));
-  const mapWidth = width - 42;
-  const mapHeight = 270;
-  const tileSize = 256;
-  const zoom = 15;
-  let mapTiles = [];
-  if (hasCoordinate) {
-    const latitude = Math.max(-85.0511, Math.min(85.0511, Number(coordinate.latitude)));
-    const longitude = Number(coordinate.longitude);
-    const scale = 2 ** zoom;
-    const worldX = ((longitude + 180) / 360) * scale;
-    const latitudeRadians = (latitude * Math.PI) / 180;
-    const worldY = ((1 - Math.log(Math.tan(latitudeRadians) + (1 / Math.cos(latitudeRadians))) / Math.PI) / 2) * scale;
-    const centerTileX = Math.floor(worldX);
-    const centerTileY = Math.floor(worldY);
-    const offsetX = worldX - centerTileX;
-    const offsetY = worldY - centerTileY;
-    mapTiles = [-1, 0, 1].flatMap((dx) => [-1, 0, 1].map((dy) => ({
-      key: `${dx}-${dy}`,
-      url: `https://tile.openstreetmap.org/${zoom}/${(centerTileX + dx + scale) % scale}/${centerTileY + dy}.png`,
-      left: (mapWidth / 2) + ((dx - offsetX) * tileSize),
-      top: (mapHeight / 2) + ((dy - offsetY) * tileSize),
-      visible: centerTileY + dy >= 0 && centerTileY + dy < scale,
-    })).filter((tile) => tile.visible));
-  }
+  const latitude = Number(coordinate?.latitude);
+  const longitude = Number(coordinate?.longitude);
+  const hasCoordinate = coordinate?.latitude != null && coordinate?.longitude != null
+    && Number.isFinite(latitude) && Number.isFinite(longitude)
+    && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180;
   const destination = hasCoordinate
-    ? `${coordinate.latitude},${coordinate.longitude}`
-    : event.venueLocationText || event.venue;
+    ? `${latitude},${longitude}`
+    : event.venueLocationText || [event.venue, event.city, event.stateCode, event.countryCode].filter(Boolean).join(', ');
   const openVenueDirections = async () => {
     const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
     try { await Linking.openURL(url); } catch { Alert.alert('Directions unavailable', 'Check your internet connection and try again.'); }
@@ -126,10 +99,28 @@ const VenueMap = ({ event }) => {
     try { await Linking.openURL(event.ticketUrl); } catch { Alert.alert('Ticketmaster unavailable', 'Check your internet connection and try again.'); }
   };
   return <View style={styles.ticketMap}>
-    {hasCoordinate ? <View style={styles.venueDirectionMap}>{mapTiles.map((tile) => <Image key={tile.key} source={{ uri: tile.url }} resizeMode="stretch" style={[styles.venueMapTile, { left: tile.left, top: tile.top }]} />)}<View style={styles.venueMapPin}><View style={styles.venueMapPinDot} /></View></View> : <View style={styles.venueMapUnavailable}><Text style={styles.venueMapUnavailableText}>Ticketmaster did not provide venue coordinates for this event.</Text></View>}
-    <View style={styles.venueMapCaption}><Text style={styles.venueMapName} numberOfLines={1}>{event.venue}</Text><Text style={styles.venueMapAddress} numberOfLines={2}>{event.venueLocationText || 'Address unavailable'}</Text><Text style={styles.venueMapAttribution}>Venue location from Ticketmaster · Map © OpenStreetMap</Text></View>
-    <TouchableOpacity accessibilityLabel="Open venue directions" onPress={openVenueDirections} style={styles.ticketMapDirections}><Text style={styles.ticketMapDirectionsText}>Get directions</Text></TouchableOpacity>
-    {!!event.ticketUrl && <TouchableOpacity accessibilityLabel="Open event listing" onPress={openOfficialEvent} style={styles.officialEventLink}><Text style={styles.officialEventLinkText}>{event.ticketUrl.toLowerCase().includes('ticketmaster.') ? 'Ticketmaster event' : 'Event listing'}</Text></TouchableOpacity>}
+    {hasCoordinate && Platform.OS !== 'web'
+      ? <MapView
+          key={`${latitude}-${longitude}`}
+          style={styles.venueDirectionMap}
+          initialRegion={{ latitude, longitude, latitudeDelta: 0.012, longitudeDelta: 0.012 }}
+          mapType="standard"
+          showsCompass
+          showsBuildings
+          showsPointsOfInterest
+          toolbarEnabled={false}
+          moveOnMarkerPress={false}
+        >
+          <Marker coordinate={{ latitude, longitude }} title={event.venue} description={event.venueLocationText || undefined} />
+        </MapView>
+      : <View style={styles.venueMapUnavailable}>
+          <Text style={styles.venueMapUnavailableText}>{hasCoordinate
+            ? 'Open directions to view this venue on a map.'
+            : 'Exact venue coordinates are unavailable. Open directions to find the venue.'}</Text>
+        </View>}
+    <View pointerEvents="none" style={styles.venueMapCaption}><Text style={styles.venueMapName} numberOfLines={1}>{event.venue}</Text><Text style={styles.venueMapAddress} numberOfLines={2}>{event.venueLocationText || 'Address unavailable'}</Text><Text style={styles.venueMapAttribution}>Venue location from Ticketmaster</Text></View>
+    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Open venue directions" onPress={openVenueDirections} style={styles.ticketMapDirections}><Text style={styles.ticketMapDirectionsText}>Get directions</Text></TouchableOpacity>
+    {!!event.ticketUrl && <TouchableOpacity accessibilityRole="button" accessibilityLabel="Open event listing" onPress={openOfficialEvent} style={styles.officialEventLink}><Text style={styles.officialEventLinkText}>{event.ticketUrl.toLowerCase().includes('ticketmaster.') ? 'Ticketmaster event' : 'Event listing'}</Text></TouchableOpacity>}
   </View>;
 };
 const CARD_WIDTH = Math.min(width * 0.76, 292);
@@ -440,7 +431,7 @@ const App = () => {
   if (screen === 'register') return <SafeAreaView style={styles.register}><View style={styles.registerTop}><Text style={styles.registerTitle}>Create Profile</Text></View><ScrollView contentContainerStyle={styles.registerBody}><Text style={styles.eyebrow}>WELCOME TO TM</Text><Text style={styles.registerText}>Add your name to personalize your experience.</Text><Text style={styles.inputLabel}>YOUR NAME</Text><TextInput value={name} onChangeText={setName} placeholder="How should we call you?" style={styles.input} /><TouchableOpacity onPress={() => { if (!name.trim()) return; const next = { name: name.trim() }; AsyncStorage.setItem('tm_profile', JSON.stringify(next)); setProfile(next); setScreen('home'); }} style={[styles.primary, !name.trim() && styles.disabled]}><Text style={styles.primaryText}>Create Profile</Text></TouchableOpacity></ScrollView></SafeAreaView>;
   if (screen === 'profile') return top(<ScrollView contentContainerStyle={styles.page}><Text style={styles.pageTitle}>Your profile</Text><Text style={styles.pageLead}>Choose a photo and it will stay on your home screen until you replace it.</Text><TouchableOpacity onPress={chooseProfilePhoto} style={styles.photoPicker}>{profile?.image ? <Image source={{ uri: profile.image }} style={styles.photoPickerImage} /> : <Text style={styles.photoPickerInitial}>{(name || profile?.name || 'U').charAt(0).toUpperCase()}</Text>}<View style={styles.photoEdit}><Text style={styles.photoEditText}>Change photo</Text></View></TouchableOpacity><Text style={styles.inputLabel}>YOUR NAME</Text><TextInput value={name} onChangeText={setName} placeholder="How should we call you?" style={styles.input} /><TouchableOpacity onPress={async () => { await saveProfile(); setScreen('home'); }} style={[styles.primary, !name.trim() && styles.disabled]}><Text style={styles.primaryText}>Save profile</Text></TouchableOpacity><TouchableOpacity onPress={() => setScreen('tickets')} style={styles.myTicketsLink}><Text style={styles.myTicketsLinkText}>View My Tickets</Text></TouchableOpacity><TouchableOpacity onPress={() => setScreen('settings')} style={styles.myTicketsLink}><Text style={styles.myTicketsLinkText}>Settings</Text></TouchableOpacity></ScrollView>);
   if (screen === 'settings') return top(<ScrollView contentContainerStyle={styles.page}><Text style={styles.pageTitle}>Settings</Text><Text style={styles.pageLead}>Choose how ticket prices are displayed. Your preference is saved on this device.</Text><Text style={styles.inputLabel}>DISPLAY CURRENCY</Text>{Object.entries(currencyOptions).map(([code, option]) => <TouchableOpacity key={code} onPress={async () => { const next = { currency: code }; setSettings(next); await AsyncStorage.setItem('tm_settings', JSON.stringify(next)); }} style={[styles.currencyOption, settings.currency === code && styles.currencyOptionSelected]}><View><Text style={styles.currencyCode}>{code} · {option.symbol}</Text><Text style={styles.currencyLabel}>{option.label}</Text></View><View style={[styles.currencyRadio, settings.currency === code && styles.currencyRadioSelected]}>{settings.currency === code && <Text style={styles.currencyCheck}>✓</Text>}</View></TouchableOpacity>)}<Text style={styles.settingsNote}>Ticketmaster prices are supplied in USD. Other currencies use an estimated display conversion and are finalized by the ticket provider at checkout.</Text></ScrollView>);
-  if (screen === 'detail') return top(<View style={styles.detailScreen}><ScrollView showsVerticalScrollIndicator={false}><Image source={eventImageSource(selected.image)} style={styles.detailImage} /><View style={styles.detail}><Text style={styles.type}>{selected.category}</Text><Text style={styles.detailTitle}>{selected.name}</Text><Text style={styles.detailDate}>{longDay(selected)} · {selected.time}</Text><OfficialVenueLocation event={selected} />{selected.isLiveTicketmasterEvent && <><View style={styles.rule} /><Text style={styles.about}>Official Ticketmaster seating map</Text>{selected.seatMapUrl ? <Image source={{ uri: selected.seatMapUrl }} resizeMode="contain" style={styles.officialSeatMap} /> : <Text style={styles.description}>Ticketmaster has not provided a static seating map for this event. Open the official ticket page to view its current sections and available seats.</Text>}<Text style={styles.description}>Section labels and available seats vary by event. Ticketmaster shows the current seat inventory during ticket selection.</Text></>}<View style={styles.rule} /><Text style={styles.about}>About this event</Text>{[16, 17].includes(selected.id) ? <ScrollView nestedScrollEnabled showsVerticalScrollIndicator style={styles.aboutScroll}><Text style={styles.description}>{selected.description}</Text></ScrollView> : <Text style={styles.description}>{selected.description}</Text>}</View></ScrollView><View style={styles.sticky}>{selected.isLiveTicketmasterEvent ? <><TouchableOpacity onPress={() => openOfficialTicketPage(selected)} style={styles.primary}><Text style={styles.primaryText}>Buy on Ticketmaster</Text></TouchableOpacity><TouchableOpacity onPress={() => setScreen('quantity')} style={styles.secondary}><Text style={styles.secondaryText}>Continue with seat preview</Text></TouchableOpacity></> : <TouchableOpacity onPress={() => setScreen('quantity')} style={styles.primary}><Text style={styles.primaryText}>{`Buy tickets from ${formatMoney(selected.price)}`}</Text></TouchableOpacity>}</View></View>);
+  if (screen === 'detail') return top(<View style={styles.detailScreen}><ScrollView showsVerticalScrollIndicator={false}><Image source={eventImageSource(selected.image)} style={styles.detailImage} /><View style={styles.detail}><Text style={styles.type}>{selected.category}</Text><Text style={styles.detailTitle}>{selected.name}</Text><Text style={styles.detailDate}>{longDay(selected)} · {selected.time}</Text><OfficialVenueLocation event={selected} />{selected.isLiveTicketmasterEvent && <><View style={styles.rule} /><Text style={styles.about}>Official Ticketmaster seating map</Text>{selected.seatMapUrl ? <Image source={{ uri: selected.seatMapUrl }} resizeMode="contain" style={styles.officialSeatMap} /> : <Text style={styles.description}>Ticketmaster has not provided a static seating map for this event. Open the official ticket page to view its current sections and available seats.</Text>}<Text style={styles.description}>Section labels and available seats vary by event. Ticketmaster shows the current seat inventory during ticket selection.</Text></>}<View style={styles.rule} /><Text style={styles.about}>About this event</Text>{[16, 17].includes(selected.id) ? <ScrollView nestedScrollEnabled showsVerticalScrollIndicator style={styles.aboutScroll}><Text style={styles.description}>{selected.description}</Text></ScrollView> : <Text style={styles.description}>{selected.description}</Text>}</View></ScrollView><View style={styles.sticky}>{selected.isLiveTicketmasterEvent ? <TouchableOpacity onPress={() => setScreen('quantity')} style={styles.primary}><Text style={styles.primaryText}>Reserve tickets</Text></TouchableOpacity> : <TouchableOpacity onPress={() => setScreen('quantity')} style={styles.primary}><Text style={styles.primaryText}>{`Buy tickets from ${formatMoney(selected.price)}`}</Text></TouchableOpacity>}</View></View>);
   if (screen === 'quantity') return top(<ScrollView contentContainerStyle={styles.page}><Text style={styles.step}>STEP 1 OF 4</Text><Text style={styles.pageTitle}>How many tickets?</Text><Text style={styles.pageLead}>{selected.name}</Text><View style={styles.quantityCard}><Text style={styles.quantityLabel}>{selected.isLiveTicketmasterEvent ? `Ticketmaster listed price · ${formatMoney(selected.price)} each` : `General admission · ${formatMoney(selected.price)} each`}</Text><View style={styles.bigStepper}><TouchableOpacity onPress={() => setQuantity(Math.max(1, quantity - 1))} style={styles.bigStep}><Text style={styles.bigStepText}>−</Text></TouchableOpacity><Text style={styles.bigQuantity}>{quantity}</Text><TouchableOpacity onPress={() => setQuantity(Math.min(40, quantity + 1))} style={styles.bigStep}><Text style={styles.bigStepText}>+</Text></TouchableOpacity></View><Text style={styles.helper}>You can select up to 40 tickets.</Text></View><TouchableOpacity onPress={() => setScreen('seats')} style={styles.primary}><Text style={styles.primaryText}>Continue to seats</Text></TouchableOpacity></ScrollView>);
   if (screen === 'seats' && selected?.isLiveTicketmasterEvent) return top(<OfficialSeatEntry event={selected} quantity={quantity} onReserve={(seatValues, enteredTicketType) => { setChosenSeats(seatValues); setTicketType(enteredTicketType); setScreen('review'); }} />);
   if (screen === 'seats') return top(<ScrollView contentContainerStyle={styles.page}><Text style={styles.step}>STEP 2 OF 4</Text><Text style={styles.pageTitle}>Pick your seats</Text><Text style={styles.pageLead}>Choose a section, row, then {quantity} seat{quantity > 1 ? 's' : ''}.</Text><Text style={styles.selectionHeading}>1. SECTION</Text>{isBTSEvent(selected) && <Text style={styles.btsSectionHelper}>BTS ticket type is assigned automatically: Sections 1–50 VIP Soundcheck, 51–100 VIP, and 101+ ARMY Membership Presale.</Text>}<View style={styles.choiceGrid}>{(isBTSEvent(selected) ? btsSeatSections(selected) : (resolveSeatingConfig(selected).sections.length ? btsSeatSections(selected) : seatSections)).map((section) => <TouchableOpacity key={section} onPress={() => { setSelectedSection(section); setSelectedRow(section === 'GA' ? 'GA' : null); setChosenSeats([]); }} style={[styles.choiceChip, selectedSection === section && styles.choiceChipSelected]}><Text style={[styles.choiceChipText, selectedSection === section && styles.choiceChipTextSelected]}>{section === 'GA' ? 'General Admission' : `Section ${section}`}</Text></TouchableOpacity>)}</View>{isBTSEvent(selected) && selectedSection && <View style={styles.btsTicketType}><Text style={styles.btsTicketTypeLabel}>YOUR BTS TICKET TYPE</Text><Text style={styles.btsTicketTypeValue}>{btsTicketType(selectedSection)}</Text></View>}{selectedSection && selectedSection !== 'GA' && <><Text style={styles.selectionHeading}>2. ROW</Text><View style={styles.choiceGrid}>{seatRows.map((row) => <TouchableOpacity key={row} onPress={() => { setSelectedRow(row); setChosenSeats([]); }} style={[styles.rowChip, selectedRow === row && styles.choiceChipSelected]}><Text style={[styles.choiceChipText, selectedRow === row && styles.choiceChipTextSelected]}>{row}</Text></TouchableOpacity>)}</View></>}{selectedSection && selectedRow && <><Text style={styles.selectionHeading}>{selectedSection === 'GA' ? '2. ADMISSION TICKETS' : '3. SEAT NUMBER'}</Text><View style={styles.stage}><Text style={styles.stageText}>{selectedSection === 'GA' ? 'GENERAL ADMISSION' : 'STAGE'}</Text></View><View style={styles.seatGrid}>{seatNumbers.map((number) => { const seatKey = selectedSection === 'GA' ? `GA-GA-${number}` : `${selectedSection}-${selectedRow}-${number}`; return <TouchableOpacity key={seatKey} onPress={() => toggleSeat(seatKey)} style={[styles.seat, chosenSeats.includes(seatKey) && styles.seatSelected, chosenSeats.length >= quantity && !chosenSeats.includes(seatKey) && styles.seatMuted]}><Text style={[styles.seatText, chosenSeats.includes(seatKey) && styles.seatTextSelected]}>{number}</Text></TouchableOpacity>; })}</View></>}<TouchableOpacity onPress={chooseBest} style={styles.best}><Text style={styles.bestTitle}>Best available</Text><Text style={styles.bestCopy}>Select {selectedSection ? `in ${selectedSection}${selectedRow ? `, Row ${selectedRow}` : ''}` : 'the best location'} for me</Text></TouchableOpacity><Text style={styles.selection}>{chosenSeats.length} of {quantity} selected</Text><TouchableOpacity disabled={chosenSeats.length !== quantity} onPress={() => setScreen('review')} style={[styles.primary, chosenSeats.length !== quantity && styles.disabled]}><Text style={styles.primaryText}>Reserve tickets</Text></TouchableOpacity></ScrollView>);
@@ -533,7 +524,7 @@ const styles = StyleSheet.create({
   ticketMapTitle: { color: '#555', fontSize: 12, fontWeight: '900', letterSpacing: .7, marginHorizontal: 20, marginTop: 18, marginBottom: 10 },
   officialVenueLocation: { marginTop: 14, padding: 14, borderRadius: 6, backgroundColor: '#f2f6fb' }, officialVenueName: { color: '#101828', fontWeight: '800', fontSize: 15 }, officialVenueAddress: { color: '#475467', lineHeight: 20, marginTop: 5 }, officialDirections: { alignSelf: 'flex-start', paddingVertical: 9 }, officialDirectionsText: { color: '#026cdf', fontWeight: '800' }, officialSeatMap: { width: '100%', height: 260, marginVertical: 12, backgroundColor: '#f2f4f7' }, seatMapLink: { marginVertical: 12, padding: 14, backgroundColor: '#f2f6fb', borderRadius: 6 }, seatAvailabilityNote: { color: '#667085', fontSize: 12, lineHeight: 18, marginTop: 12, marginBottom: 14 },
   detailScreen: { flex: 1 }, seatEntryContainer: { flex: 1 }, seatEntryFooter: { backgroundColor: '#fff', paddingHorizontal: 18, paddingTop: 9, paddingBottom: 12, borderTopWidth: 1, borderColor: '#e0e5eb' },
-  ticketMap: { height: 270, marginHorizontal: 20, marginBottom: 25, backgroundColor: '#e7edf4', borderRadius: 14, borderWidth: 1, borderColor: '#e0e5eb', overflow: 'hidden', position: 'relative' }, venueDirectionMap: { width: '100%', height: 270, overflow: 'hidden' }, venueMapTile: { position: 'absolute', width: 256, height: 256 }, venueMapPin: { position: 'absolute', width: 24, height: 24, left: '50%', top: '50%', marginLeft: -12, marginTop: -20, borderRadius: 12, backgroundColor: '#d92d20', borderWidth: 2, borderColor: '#fff', alignItems: 'center', justifyContent: 'center', elevation: 4 }, venueMapPinDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#fff' }, venueMapUnavailable: { height: 270, justifyContent: 'center', alignItems: 'center', padding: 20 }, venueMapUnavailableText: { color: '#475467', fontSize: 13, textAlign: 'center' }, venueMapCaption: { position: 'absolute', top: 10, left: 10, right: 10, padding: 9, borderRadius: 6, backgroundColor: 'rgba(255,255,255,.94)' }, venueMapName: { color: '#101828', fontSize: 13, fontWeight: '900' }, venueMapAddress: { color: '#475467', fontSize: 11, marginTop: 2 }, venueMapAttribution: { color: '#667085', fontSize: 9, marginTop: 4 }, officialEventLink: { position: 'absolute', left: 12, bottom: 12, backgroundColor: '#fff', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 9, elevation: 3 }, officialEventLinkText: { color: '#026cdf', fontSize: 12, fontWeight: '900' },
+  ticketMap: { height: 270, marginHorizontal: 20, marginBottom: 25, backgroundColor: '#e7edf4', borderRadius: 14, borderWidth: 1, borderColor: '#e0e5eb', overflow: 'hidden', position: 'relative' }, venueDirectionMap: { width: '100%', height: 270 }, venueMapPin: { position: 'absolute', width: 24, height: 24, left: '50%', top: '50%', marginLeft: -12, marginTop: -20, borderRadius: 12, backgroundColor: '#d92d20', borderWidth: 2, borderColor: '#fff', alignItems: 'center', justifyContent: 'center', elevation: 4 }, venueMapPinDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#fff' }, venueMapUnavailable: { height: 270, justifyContent: 'center', alignItems: 'center', padding: 20 }, venueMapUnavailableText: { color: '#475467', fontSize: 13, textAlign: 'center' }, venueMapCaption: { position: 'absolute', top: 10, left: 10, right: 10, padding: 9, borderRadius: 6, backgroundColor: 'rgba(255,255,255,.94)' }, venueMapName: { color: '#101828', fontSize: 13, fontWeight: '900' }, venueMapAddress: { color: '#475467', fontSize: 11, marginTop: 2 }, venueMapAttribution: { color: '#667085', fontSize: 9, marginTop: 4 }, officialEventLink: { position: 'absolute', left: 12, bottom: 12, backgroundColor: '#fff', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 9, elevation: 3 }, officialEventLinkText: { color: '#026cdf', fontSize: 12, fontWeight: '900' },
   ticketMapDirections: { position: 'absolute', right: 12, bottom: 12, backgroundColor: '#fff', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 9, shadowColor: '#101828', shadowOpacity: .18, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
   ticketMapDirectionsText: { color: '#075be0', fontSize: 13, fontWeight: '900' },
   directionsButton: { minHeight: 44, backgroundColor: '#fff', borderRadius: 4, justifyContent: 'center', alignItems: 'center', marginBottom: 16, marginHorizontal: 18, borderWidth: 1, borderColor: '#075be0' },
@@ -598,5 +589,3 @@ ticketMapAttachedDirectionsText: { color: '#333', fontSize: 16, fontWeight: '900
 });
 
 export default App;
-
-
