@@ -26,22 +26,32 @@ const formatSeatValue = (value) => {
   const seat = parseSeatValue(value);
   return `Section ${seat.section} · Row ${seat.row} · Seat ${seat.seat}`;
 };
+const venueCoordinates = (event = {}) => {
+  const latitude = Number(event.venueLocation?.latitude);
+  const longitude = Number(event.venueLocation?.longitude);
+  return Number.isFinite(latitude) && Number.isFinite(longitude)
+    && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180
+    ? { latitude, longitude }
+    : null;
+};
+const venueMapUrl = (event = {}) => {
+  const coordinate = venueCoordinates(event);
+  if (coordinate) {
+    const { latitude, longitude } = coordinate;
+    return `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=16/${latitude}/${longitude}`;
+  }
+  const query = event.venueLocationText || [event.venue, event.city, event.stateCode, event.countryCode].filter(Boolean).join(', ');
+  return `https://www.openstreetmap.org/search?query=${encodeURIComponent(query)}`;
+};
+const openVenueMap = async (event) => {
+  try { await Linking.openURL(venueMapUrl(event)); }
+  catch { Alert.alert('Venue map unavailable', 'Check your internet connection and try again.'); }
+};
 const OfficialVenueLocation = ({ event }) => {
-  const location = event.venueLocation;
-  const mapTarget = location?.latitude != null && location?.longitude != null
-    ? `${location.latitude},${location.longitude}`
-    : event.venueLocationText || event.venue;
-  const openDirections = async () => {
-    try {
-      await Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapTarget)}`);
-    } catch {
-      Alert.alert('Directions unavailable', 'Please try again after checking your internet connection.');
-    }
-  };
   return <View style={styles.officialVenueLocation}>
     <Text style={styles.officialVenueName}>{event.venue}</Text>
     <Text style={styles.officialVenueAddress}>{event.venueLocationText || [event.city, event.stateCode, event.postalCode, event.countryCode].filter(Boolean).join(', ') || 'Address not provided by Ticketmaster'}</Text>
-    <TouchableOpacity accessibilityLabel="Open official venue location in maps" onPress={openDirections} style={styles.officialDirections}>
+    <TouchableOpacity accessibilityLabel="Open official venue map" onPress={() => openVenueMap(event)} style={styles.officialDirections}>
       <Text style={styles.officialDirectionsText}>Open venue location</Text>
     </TouchableOpacity>
   </View>;
@@ -80,12 +90,9 @@ const OfficialSeatEntry = ({ event, quantity, onReserve }) => {
   </ScrollView><View style={styles.seatEntryFooter}><TouchableOpacity disabled={!valid} onPress={() => onReserve(seatLabels.map((seat) => encodeSeatValue(section.trim(), row.trim(), seat)), ticketType.trim())} style={[styles.primary, !valid && styles.disabled]}><Text style={styles.primaryText}>Continue to payment</Text></TouchableOpacity></View></View>;
 };
 const VenueMap = ({ event }) => {
-  const coordinate = event.venueLocation;
-  const latitude = Number(coordinate?.latitude);
-  const longitude = Number(coordinate?.longitude);
-  const hasCoordinate = coordinate?.latitude != null && coordinate?.longitude != null
-    && Number.isFinite(latitude) && Number.isFinite(longitude)
-    && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180;
+  const coordinate = venueCoordinates(event);
+  const hasCoordinate = Boolean(coordinate);
+  const { latitude = 0, longitude = 0 } = coordinate || {};
   const mapWidth = width - 40;
   const mapHeight = 270;
   const tileSize = 256;
@@ -109,13 +116,6 @@ const VenueMap = ({ event }) => {
       visible: centerTileY + dy >= 0 && centerTileY + dy < scale,
     })).filter((tile) => tile.visible));
   }
-  const destination = hasCoordinate
-    ? `${latitude},${longitude}`
-    : event.venueLocationText || [event.venue, event.city, event.stateCode, event.countryCode].filter(Boolean).join(', ');
-  const openVenueDirections = async () => {
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
-    try { await Linking.openURL(url); } catch { Alert.alert('Directions unavailable', 'Check your internet connection and try again.'); }
-  };
   const openOfficialEvent = async () => {
     if (!event.ticketUrl) return;
     try { await Linking.openURL(event.ticketUrl); } catch { Alert.alert('Ticketmaster unavailable', 'Check your internet connection and try again.'); }
@@ -124,8 +124,8 @@ const VenueMap = ({ event }) => {
     {hasCoordinate
       ? <View style={styles.venueDirectionMap}>{mapTiles.map((tile) => <Image key={tile.key} source={{ uri: tile.url }} resizeMode="stretch" style={[styles.venueMapTile, { left: tile.left, top: tile.top }]} />)}<View style={styles.venueMapPin}><View style={styles.venueMapPinDot} /></View></View>
       : <View style={styles.venueMapUnavailable}><Text style={styles.venueMapUnavailableText}>Exact venue coordinates are unavailable. Open directions to find the venue.</Text></View>}
-    <View pointerEvents="none" style={styles.venueMapCaption}><Text style={styles.venueMapName} numberOfLines={1}>{event.venue}</Text><Text style={styles.venueMapAddress} numberOfLines={2}>{event.venueLocationText || 'Address unavailable'}</Text><Text style={styles.venueMapAttribution}>Venue location from Ticketmaster · Map © OpenStreetMap</Text></View>
-    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Open venue directions" onPress={openVenueDirections} style={styles.ticketMapDirections}><Text style={styles.ticketMapDirectionsText}>Get directions</Text></TouchableOpacity>
+    <View pointerEvents="none" style={styles.venueMapCaption}><Text style={styles.venueMapName} numberOfLines={1}>{event.venue}</Text><Text style={styles.venueMapAddress} numberOfLines={2}>{event.venueLocationText || 'Address unavailable'}</Text><Text style={styles.venueMapAttribution}>Venue location from Ticketmaster Discovery API · Map © OpenStreetMap</Text></View>
+    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Open venue map" onPress={() => openVenueMap(event)} style={styles.ticketMapDirections}><Text style={styles.ticketMapDirectionsText}>Open venue map</Text></TouchableOpacity>
     {!!event.ticketUrl && <TouchableOpacity accessibilityRole="button" accessibilityLabel="Open event listing" onPress={openOfficialEvent} style={styles.officialEventLink}><Text style={styles.officialEventLinkText}>{event.ticketUrl.toLowerCase().includes('ticketmaster.') ? 'Ticketmaster event' : 'Event listing'}</Text></TouchableOpacity>}
   </View>;
 };
@@ -272,15 +272,11 @@ const LegacyTicketCard = ({ order, onTransfer }) => {
   const isGA = section.toUpperCase() === 'GA';
   const entryGate = order.event.isLiveTicketmasterEvent ? 'See Ticketmaster event details' : isGA ? 'General Admission Gate' : section === '101' ? 'Southwest' : section === '102' ? 'North' : 'East';
   const action = (label) => { setMessage(`${label} is available for this ticket.`); setTimeout(() => setMessage(''), 2200); };
-  const openDirections = async () => {
-    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.event.venue)}`;
-    try { await Linking.openURL(url); } catch { Alert.alert('Directions unavailable', 'Please try again after checking your internet connection.'); }
-  };
   return <View style={styles.ticketShell}>
     <View style={styles.ticketCard}>
       <View style={styles.ticketSeatHeader}><Text style={styles.ticketType}>{isGA ? 'FREE TRANSFER' : 'STANDARD TICKET'}</Text><View style={styles.seatInfoRow}><View style={styles.seatInfo}><Text style={styles.seatInfoLabel}>SEC</Text><Text style={styles.seatInfoValue}>{section}</Text></View><View style={styles.seatInfo}><Text style={styles.seatInfoLabel}>ROW</Text><Text style={styles.seatInfoValue}>{isGA ? 'GA' : row}</Text></View><View style={styles.seatInfo}><Text style={styles.seatInfoLabel}>SEAT</Text><Text style={styles.seatInfoValue}>{isGA ? '—' : seat}</Text></View></View></View>
       <View style={styles.ticketBanner}><Image source={{ uri: order.event.image }} style={styles.ticketImage} /><View style={styles.ticketImageShade} /><View style={styles.ticketEventCopy}><Text style={styles.ticketName} numberOfLines={2}>{order.event.name}</Text><Text style={styles.ticketDate}>{day(order.event)} · {order.event.time} · {order.event.venue}</Text></View></View>
-      <TouchableOpacity onPress={openDirections} style={styles.directionsButton}><Text style={styles.directionsButtonText}>Get Directions</Text></TouchableOpacity>
+      <TouchableOpacity onPress={() => openVenueMap(order.event)} style={styles.directionsButton}><Text style={styles.directionsButtonText}>Open Venue Map</Text></TouchableOpacity>
       <View style={styles.ticketWhiteBody}><View style={styles.gateBlock}><Text style={styles.gateLabel}>ENTRY GATE</Text><Text style={styles.gateValue}>{entryGate}</Text></View><TouchableOpacity onPress={() => setShowBarcode((shown) => !shown)} style={styles.ticketPrimaryAction}><Text style={styles.ticketPrimaryActionText}>{showBarcode ? 'Hide Barcode' : 'View Ticket'}</Text></TouchableOpacity>{showBarcode && <View style={styles.barcode}><View style={styles.barcodeBars}>{[2, 5, 3, 1, 4, 2, 6, 1, 3, 5, 2, 4, 1, 5, 3, 2].map((bar, index) => <View key={index} style={[styles.barcodeBar, { width: bar }]} />)}</View><Text style={styles.barcodeNumber}>{order.id}</Text></View>}<View style={styles.ticketLinks}><TouchableOpacity onPress={() => setShowBarcode(true)}><Text style={styles.ticketLink}>View Barcode</Text></TouchableOpacity><TouchableOpacity onPress={() => action('Ticket details')}><Text style={styles.ticketLink}>Ticket Details</Text></TouchableOpacity></View></View>
       <Text style={styles.ticketMapTitle}>VENUE MAP</Text>
       <VenueMap event={order.event} />
