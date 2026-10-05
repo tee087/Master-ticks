@@ -69,7 +69,7 @@ const OfficialSeatEntry = ({ event, quantity, onReserve }) => {
     try { await Linking.openURL(event.ticketUrl); }
     catch { Alert.alert('Ticketmaster unavailable', 'Check your internet connection and try again.'); }
   };
-  return <View style={styles.seatEntryContainer}><ScrollView contentContainerStyle={styles.page}>
+  return <View style={styles.seatEntryContainer}><ScrollView contentContainerStyle={[styles.page, styles.seatEntryContent]}>
       <Text style={styles.step}>STEP 2 OF 4</Text>
       <Text style={styles.pageTitle}>Pick your seats</Text>
       <Text style={styles.pageLead}>{event.name} · {event.venue}. Enter the labels exactly as Ticketmaster shows them.</Text>
@@ -87,7 +87,7 @@ const OfficialSeatEntry = ({ event, quantity, onReserve }) => {
       <Text style={styles.helper}>Use letters or numbers as printed on the event’s seating map. Separate each seat with a comma.</Text>
       <Text style={styles.selection}>{seatLabels.length} of {quantity} seat labels entered</Text>
       <Text style={styles.seatAvailabilityNote}>This preview does not check or reserve Ticketmaster inventory.</Text>
-  </ScrollView><View style={styles.seatEntryFooter}><TouchableOpacity disabled={!valid} onPress={() => onReserve(seatLabels.map((seat) => encodeSeatValue(section.trim(), row.trim(), seat)), ticketType.trim())} style={[styles.primary, !valid && styles.disabled]}><Text style={styles.primaryText}>Continue to payment</Text></TouchableOpacity></View></View>;
+  </ScrollView><View style={styles.seatEntryFooter}><TouchableOpacity disabled={!valid} onPress={() => onReserve(seatLabels.map((seat) => encodeSeatValue(section.trim(), row.trim(), seat)), ticketType.trim())} style={[styles.primary, styles.seatEntryAction, !valid && styles.disabled]}><Text style={styles.primaryText}>Reserve tickets</Text></TouchableOpacity></View></View>;
 };
 const VenueMap = ({ event }) => {
   const coordinate = venueCoordinates(event);
@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
   moreOptionsTitle: { color: '#111', fontSize: 24, fontWeight: '900', marginHorizontal: 20, marginTop: 35, marginBottom: 34 },
   ticketMapTitle: { color: '#555', fontSize: 12, fontWeight: '900', letterSpacing: .7, marginHorizontal: 20, marginTop: 18, marginBottom: 10 },
   officialVenueLocation: { marginTop: 14, padding: 14, borderRadius: 6, backgroundColor: '#f2f6fb' }, officialVenueName: { color: '#101828', fontWeight: '800', fontSize: 15 }, officialVenueAddress: { color: '#475467', lineHeight: 20, marginTop: 5 }, officialDirections: { alignSelf: 'flex-start', paddingVertical: 9 }, officialDirectionsText: { color: '#026cdf', fontWeight: '800' }, officialSeatMap: { width: '100%', height: 260, marginVertical: 12, backgroundColor: '#f2f4f7' }, seatMapLink: { marginVertical: 12, padding: 14, backgroundColor: '#f2f6fb', borderRadius: 6 }, seatAvailabilityNote: { color: '#667085', fontSize: 12, lineHeight: 18, marginTop: 12, marginBottom: 14 },
-  detailScreen: { flex: 1 }, seatEntryContainer: { flex: 1 }, seatEntryFooter: { backgroundColor: '#fff', paddingHorizontal: 18, paddingTop: 9, paddingBottom: 12, borderTopWidth: 1, borderColor: '#e0e5eb' },
+  detailScreen: { flex: 1 }, seatEntryContainer: { flex: 1 }, seatEntryContent: { paddingBottom: 155 }, seatEntryFooter: { position: 'absolute', left: 0, right: 0, bottom: 82, zIndex: 10, elevation: 8, backgroundColor: '#f7f8fc', paddingHorizontal: 18, paddingTop: 12, paddingBottom: 12, borderTopWidth: 1, borderColor: '#e0e5eb' }, seatEntryAction: { marginTop: 0 },
   ticketMap: { height: 270, marginHorizontal: 20, marginBottom: 25, backgroundColor: '#e7edf4', borderRadius: 14, borderWidth: 1, borderColor: '#e0e5eb', overflow: 'hidden', position: 'relative' }, venueDirectionMap: { width: '100%', height: 270, overflow: 'hidden' }, venueMapTile: { position: 'absolute', width: 256, height: 256 }, venueMapPin: { position: 'absolute', width: 24, height: 24, left: '50%', top: '50%', marginLeft: -12, marginTop: -20, borderRadius: 12, backgroundColor: '#d92d20', borderWidth: 2, borderColor: '#fff', alignItems: 'center', justifyContent: 'center', elevation: 4 }, venueMapPinDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#fff' }, venueMapUnavailable: { height: 270, justifyContent: 'center', alignItems: 'center', padding: 20 }, venueMapUnavailableText: { color: '#475467', fontSize: 13, textAlign: 'center' }, venueMapCaption: { position: 'absolute', top: 10, left: 10, right: 10, padding: 9, borderRadius: 6, backgroundColor: 'rgba(255,255,255,.94)' }, venueMapName: { color: '#101828', fontSize: 13, fontWeight: '900' }, venueMapAddress: { color: '#475467', fontSize: 11, marginTop: 2 }, venueMapAttribution: { color: '#667085', fontSize: 9, marginTop: 4 }, officialEventLink: { position: 'absolute', left: 12, bottom: 12, backgroundColor: '#fff', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 9, elevation: 3 }, officialEventLinkText: { color: '#026cdf', fontSize: 12, fontWeight: '900' },
   ticketMapDirections: { position: 'absolute', right: 12, bottom: 12, backgroundColor: '#fff', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 9, shadowColor: '#101828', shadowOpacity: .18, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
   ticketMapDirectionsText: { color: '#075be0', fontSize: 13, fontWeight: '900' },
