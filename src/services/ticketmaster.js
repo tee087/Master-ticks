@@ -1,4 +1,4 @@
-import { Constants } from 'expo-constants';
+import Constants from 'expo-constants';
 
 const API_URL = 'https://app.ticketmaster.com/discovery/v2/events.json';
 
@@ -26,8 +26,9 @@ export const isTicketmasterConfigured = () => Boolean(ticketmasterApiKey());
 export const isLiveBackendConfigured = () => Boolean(backendUrl());
 
 const backendUrl = () =>
-  (Constants?.manifest?.extra?.ticketmasterBackendUrl ||
-    process.env.EXPO_PUBLIC_TICKETMASTER_BACKEND_URL ||
+  (process.env.EXPO_PUBLIC_TICKETMASTER_BACKEND_URL ||
+    Constants?.expoConfig?.extra?.ticketmasterBackendUrl ||
+    Constants?.manifest?.extra?.ticketmasterBackendUrl ||
     '').replace(/\/+$/, '');
 
 export const fetchLiveSnapshot = async () => {
@@ -144,7 +145,7 @@ export const searchTicketmasterEvents = async ({ keyword = '', countryCodes = ['
   if (searchTerm || startDateTime || endDateTime) {
     for (let start = 0; start < countries.length; start += 5) {
       const batch = await Promise.allSettled(countries.slice(start, start + 5).map(async (countryCode) => {
-        const params = new URLSearchParams({ apikey: apiKey, source: 'ticketmaster', countryCode, size: '200', page: String(page) });
+        const params = new URLSearchParams({ apikey: apiKey, countryCode, size: '200', page: String(page) });
         if (searchTerm) params.set('keyword', searchTerm);
         if (startDateTime) params.set('startDateTime', startDateTime);
         if (endDateTime) params.set('endDateTime', endDateTime);
@@ -158,7 +159,7 @@ export const searchTicketmasterEvents = async ({ keyword = '', countryCodes = ['
 
   if ((city || (countryOnly && !startDateTime && !endDateTime)) && placeCountryCode) {
     try {
-      const params = new URLSearchParams({ apikey: apiKey, source: 'ticketmaster', countryCode: placeCountryCode, size: '200', page: String(page) });
+      const params = new URLSearchParams({ apikey: apiKey, countryCode: placeCountryCode, size: '200', page: String(page) });
       if (city) params.set('city', city);
       if (startDateTime) params.set('startDateTime', startDateTime);
       if (endDateTime) params.set('endDateTime', endDateTime);
@@ -180,7 +181,7 @@ export const searchTicketmasterEvents = async ({ keyword = '', countryCodes = ['
   // If event keyword search did not find anything, resolve a venue name and fetch its events by venue ID.
   if (searchTerm && eventsById.size === 0) {
     try {
-      const venueParams = new URLSearchParams({ apikey: apiKey, source: 'ticketmaster', keyword: searchTerm, size: '5', page: '0' });
+      const venueParams = new URLSearchParams({ apikey: apiKey, keyword: searchTerm, size: '5', page: '0' });
       const venueResponse = await fetch(`${API_URL.replace('/events.json', '/venues.json')}?${venueParams.toString()}`);
       if (!venueResponse.ok) throw new Error(`Ticketmaster venue search failed (${venueResponse.status})`);
       const venuePayload = await venueResponse.json();
@@ -190,7 +191,7 @@ export const searchTicketmasterEvents = async ({ keyword = '', countryCodes = ['
       }).slice(0, 5);
       for (let start = 0; start < venues.length; start += 5) {
         const batch = await Promise.allSettled(venues.slice(start, start + 5).map(async (venue) => {
-          const params = new URLSearchParams({ apikey: apiKey, source: 'ticketmaster', venueId: venue.id, size: '200', page: String(page) });
+          const params = new URLSearchParams({ apikey: apiKey, venueId: venue.id, size: '200', page: String(page) });
           const response = await fetch(`${API_URL}?${params.toString()}`);
           if (!response.ok) throw new Error(`Ticketmaster venue events failed (${response.status})`);
           return { payload: await response.json(), countryCode: venue.country?.countryCode || placeCountryCode || 'US' };
@@ -213,7 +214,7 @@ export const searchTicketmasterEvents = async ({ keyword = '', countryCodes = ['
 export const fetchTicketmasterEvents = async ({ keyword = '', category = 'events', page = 0, countryCode = 'US' }) => {
   const apiKey = ticketmasterApiKey();
   if (!apiKey) return { events: [], hasMore: false };
-  const params = new URLSearchParams({ apikey: apiKey, source: 'ticketmaster', size: '20', page: String(page), countryCode });
+  const params = new URLSearchParams({ apikey: apiKey, size: '20', page: String(page), countryCode });
   if (keyword.trim()) params.set('keyword', keyword.trim());
   const classifications = { Concerts: 'music', Sports: 'sports', Theater: 'arts & theatre', Festivals: 'miscellaneous' };
   if (classifications[category]) params.set('classificationName', classifications[category]);

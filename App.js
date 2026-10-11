@@ -237,9 +237,17 @@ const ticketmasterSupportedCountries = [
 const ticketmasterCountryCodes = ticketmasterSupportedCountries.map((item) => item.code);
 const ticketmasterSupportedCountryCodeSet = new Set(ticketmasterCountryCodes);
 const supportedTicketmasterCityLocations = ticketmasterCityLocations.filter((item) => ticketmasterSupportedCountryCodeSet.has(item.code));
+const ticketmasterCountryFlag = (code) => {
+  const flagCode = code === 'ND' ? 'GB' : code;
+  if (flagCode === 'AN') return '\uD83C\uDF0D';
+  return String.fromCodePoint(...Array.from(flagCode, (letter) => 0x1F1E6 + letter.charCodeAt(0) - 65));
+};
+const ticketmasterCountryLocations = ticketmasterSupportedCountries
+  .map((country) => ({ city: country.name, country: country.name, flag: ticketmasterCountryFlag(country.code), code: country.code, countryOnly: true }))
+  .sort((a, b) => a.city.localeCompare(b.city));
 const ticketmasterLocations = [
   ...supportedTicketmasterCityLocations,
-  ...ticketmasterSupportedCountries.map((country) => ({ city: country.name, country: country.name, flag: '\uD83C\uDF0D', code: country.code, countryOnly: true })),
+  ...ticketmasterCountryLocations,
 ];
 const escapeTicketmasterPhrase = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const ticketmasterMonths = [
@@ -564,7 +572,7 @@ const App = () => {
   if (screen === 'tickets') return <SafeAreaView style={styles.ticketsScreen} edges={['top', 'bottom']}><View style={styles.ticketsHeader}><TouchableOpacity accessibilityLabel="Go back" onPress={goBack} style={styles.ticketsClose}><Text style={styles.ticketsCloseText}>×</Text></TouchableOpacity><Text style={styles.ticketsHeaderTitle}>My Tickets</Text><TouchableOpacity onPress={() => { setName(profile?.name || ''); setScreen('profile'); }} style={styles.ticketsMenu}><Text style={styles.ticketsMenuText}>•••</Text></TouchableOpacity></View><ScrollView style={styles.ticketsScroll} showsVerticalScrollIndicator={false} scrollEventThrottle={16} onScroll={({ nativeEvent }) => { const nextOffset = Math.max(0, nativeEvent.contentOffset.y); if (nextOffset > ticketScrollOffset.current + 10) setTicketsNavVisible(true); if (nextOffset < ticketScrollOffset.current - 10) setTicketsNavVisible(false); ticketScrollOffset.current = nextOffset; }} contentContainerStyle={[styles.ticketsPage, ticketsNavVisible && styles.ticketsPageWithNav]}>{tickets.length ? tickets.map((ticket) => <TicketCard key={ticket.id} order={ticket} onBack={goBack} onTransfer={(order) => { setTransferOrder(order); setScreen('transfer'); }} onDelete={deleteTicket} />) : <View style={styles.empty}><Text style={styles.emptyTitle}>No tickets yet</Text><Text style={styles.emptyCopy}>Tickets you purchase will appear here.</Text><TouchableOpacity onPress={() => setScreen('home')} style={styles.outline}><Text style={styles.outlineText}>Find an event</Text></TouchableOpacity></View>}</ScrollView>{tickets.length > 0 && <View style={styles.ticketFloatingActions}><TouchableOpacity onPress={() => { setTransferOrder(tickets[0]); setScreen('transfer'); }} style={styles.floatingAction}><Text style={styles.floatingTransferIcon}>↗</Text><Text style={[styles.floatingActionText, styles.floatingActionTextActive]}>Transfer</Text></TouchableOpacity><View style={styles.floatingDivider} /><View accessibilityState={{ disabled: true }} style={styles.floatingAction}><Text style={styles.floatingSellIcon}>⟳</Text><Text style={styles.floatingActionText}>Sell</Text></View></View>}{ticketsNavVisible && <View style={styles.bottomNav}><TouchableOpacity onPress={() => setScreen('home')} style={styles.navItem}><Text style={styles.navIcon}>⌕</Text><Text style={styles.navLabel}>Discover</Text></TouchableOpacity><TouchableOpacity onPress={() => setScreen('home')} style={styles.navItem}><Text style={[styles.navIcon, styles.navInactiveIcon]}>♡</Text><Text style={styles.navLabel}>For You</Text></TouchableOpacity><TouchableOpacity onPress={() => setScreen('tickets')} style={styles.navActiveItem}><View style={styles.navActiveCircle}><Text style={styles.navActiveIcon}>▧</Text></View><Text style={styles.navActiveLabel}>My Tickets</Text></TouchableOpacity><TouchableOpacity onPress={() => setScreen('home')} style={styles.navItem}><Text style={styles.navIcon}>◈</Text><Text style={styles.navLabel}>Sell</Text></TouchableOpacity><TouchableOpacity onPress={() => { setName(profile?.name || ''); setScreen('profile'); }} style={styles.navItem}><NavProfileIcon /><Text style={styles.navLabel}>My Account</Text></TouchableOpacity></View>}</SafeAreaView>;
   if (screen === 'location') return top(<ScrollView contentContainerStyle={styles.locationPage}>
     <Text style={styles.locationTitle}>Choose location</Text>
-    <Text style={styles.locationLead}>Ticketmaster-supported countries and cities</Text>
+    <Text style={styles.locationLead}>{ticketmasterSupportedCountries.length} Ticketmaster-supported countries, plus popular cities</Text>
     <TextInput value={locationSearch} onChangeText={setLocationSearch} placeholder="Search country or city" style={[styles.input, { marginBottom: 12 }]} />
     {ticketmasterLocations.filter((item) => `${item.city} ${item.country} ${item.code}`.toLowerCase().includes(locationSearch.trim().toLowerCase())).map((item) => {
       const selectedLocation = location.city === item.city && Boolean(location.countryOnly) === Boolean(item.countryOnly);

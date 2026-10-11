@@ -26,6 +26,7 @@
   },
   "web": {},
   "extra": {
+      "ticketmasterBackendUrl": "https://master-ticks.onrender.com",
     "eas": {
       "projectId": "d4e5c938-a9c4-4b66-bc3f-7709f445af3a"
     },
