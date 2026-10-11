@@ -200,24 +200,109 @@ const btsSeatSections = (event) => {
   }
   return Array.from({ length: 140 }, (_, i) => String(i + 1));
 };
-const ticketmasterLocations = [
-  { city: 'Los Angeles', country: 'United States', flag: '🇺🇸', code: 'US' }, { city: 'New York', country: 'United States', flag: '🇺🇸', code: 'US' }, { city: 'Toronto', country: 'Canada', flag: '🇨🇦', code: 'CA' }, { city: 'London', country: 'United Kingdom', flag: '🇬🇧', code: 'GB' }, { city: 'Dublin', country: 'Ireland', flag: '🇮🇪', code: 'IE' }, { city: 'Sydney', country: 'Australia', flag: '🇦🇺', code: 'AU' }, { city: 'Auckland', country: 'New Zealand', flag: '🇳🇿', code: 'NZ' }, { city: 'Mexico City', country: 'Mexico', flag: '🇲🇽', code: 'MX' }, { city: 'Dubai', country: 'United Arab Emirates', flag: '🇦🇪', code: 'AE' }, { city: 'Vienna', country: 'Austria', flag: '🇦🇹', code: 'AT' }, { city: 'Brussels', country: 'Belgium', flag: '🇧🇪', code: 'BE' }, { city: 'Berlin', country: 'Germany', flag: '🇩🇪', code: 'DE' }, { city: 'Copenhagen', country: 'Denmark', flag: '🇩🇰', code: 'DK' }, { city: 'Madrid', country: 'Spain', flag: '🇪🇸', code: 'ES' }, { city: 'Helsinki', country: 'Finland', flag: '🇫🇮', code: 'FI' }, { city: 'Amsterdam', country: 'Netherlands', flag: '🇳🇱', code: 'NL' }, { city: 'Oslo', country: 'Norway', flag: '🇳🇴', code: 'NO' }, { city: 'Warsaw', country: 'Poland', flag: '🇵🇱', code: 'PL' }, { city: 'Stockholm', country: 'Sweden', flag: '🇸🇪', code: 'SE' }, { city: 'Zurich', country: 'Switzerland', flag: '🇨🇭', code: 'CH' }, { city: 'Prague', country: 'Czech Republic', flag: '🇨🇿', code: 'CZ' }, { city: 'Milan', country: 'Italy', flag: '🇮🇹', code: 'IT' }, { city: 'Paris', country: 'France', flag: '🇫🇷', code: 'FR' }, { city: 'Johannesburg', country: 'South Africa', flag: '🇿🇦', code: 'ZA' }, { city: 'Nairobi', country: 'Kenya', flag: '🇰🇪', code: 'KE' }, { city: 'Kampala', country: 'Uganda', flag: '🇺🇬', code: 'UG' }, { city: 'Istanbul', country: 'Turkey', flag: '🇹🇷', code: 'TR' }, { city: 'São Paulo', country: 'Brazil', flag: '🇧🇷', code: 'BR' }, { city: 'Santiago', country: 'Chile', flag: '🇨🇱', code: 'CL' }, { city: 'Lima', country: 'Peru', flag: '🇵🇪', code: 'PE' },
+const ticketmasterCityLocations = [
+  { city: 'Los Angeles', country: 'United States', flag: '🇺🇸', code: 'US' }, { city: 'New York', country: 'United States', flag: '🇺🇸', code: 'US' }, { city: 'Toronto', country: 'Canada', flag: '🇨🇦', code: 'CA' }, { city: 'London', country: 'United Kingdom', flag: '🇬🇧', code: 'GB' }, { city: 'Dublin', country: 'Ireland', flag: '🇮🇪', code: 'IE' }, { city: 'Sydney', country: 'Australia', flag: '🇦🇺', code: 'AU' }, { city: 'Singapore', country: 'Singapore', flag: '\uD83C\uDDF8\uD83C\uDDEC', code: 'SG' }, { city: 'Auckland', country: 'New Zealand', flag: '🇳🇿', code: 'NZ' }, { city: 'Mexico City', country: 'Mexico', flag: '🇲🇽', code: 'MX' }, { city: 'Dubai', country: 'United Arab Emirates', flag: '🇦🇪', code: 'AE' }, { city: 'Vienna', country: 'Austria', flag: '🇦🇹', code: 'AT' }, { city: 'Brussels', country: 'Belgium', flag: '🇧🇪', code: 'BE' }, { city: 'Berlin', country: 'Germany', flag: '🇩🇪', code: 'DE' }, { city: 'Copenhagen', country: 'Denmark', flag: '🇩🇰', code: 'DK' }, { city: 'Madrid', country: 'Spain', flag: '🇪🇸', code: 'ES' }, { city: 'Helsinki', country: 'Finland', flag: '🇫🇮', code: 'FI' }, { city: 'Amsterdam', country: 'Netherlands', flag: '🇳🇱', code: 'NL' }, { city: 'Oslo', country: 'Norway', flag: '🇳🇴', code: 'NO' }, { city: 'Warsaw', country: 'Poland', flag: '🇵🇱', code: 'PL' }, { city: 'Stockholm', country: 'Sweden', flag: '🇸🇪', code: 'SE' }, { city: 'Zurich', country: 'Switzerland', flag: '🇨🇭', code: 'CH' }, { city: 'Prague', country: 'Czech Republic', flag: '🇨🇿', code: 'CZ' }, { city: 'Milan', country: 'Italy', flag: '🇮🇹', code: 'IT' }, { city: 'Paris', country: 'France', flag: '🇫🇷', code: 'FR' }, { city: 'Johannesburg', country: 'South Africa', flag: '🇿🇦', code: 'ZA' }, { city: 'Nairobi', country: 'Kenya', flag: '🇰🇪', code: 'KE' }, { city: 'Kampala', country: 'Uganda', flag: '🇺🇬', code: 'UG' }, { city: 'Istanbul', country: 'Turkey', flag: '🇹🇷', code: 'TR' }, { city: 'São Paulo', country: 'Brazil', flag: '🇧🇷', code: 'BR' }, { city: 'Santiago', country: 'Chile', flag: '🇨🇱', code: 'CL' }, { city: 'Lima', country: 'Peru', flag: '🇵🇪', code: 'PE' },
 ];
-const ticketmasterCountryCodes = [...new Set(ticketmasterLocations.map((item) => item.code))];
-const ticketmasterPlaceSearch = (keyword) => {
-  const term = keyword.trim().toLowerCase();
-  const city = ticketmasterLocations.find((item) => item.city.toLowerCase() === term);
-  if (city) return { city: city.city, placeCountryCode: city.code };
-  const country = ticketmasterLocations.find((item) => item.country.toLowerCase() === term);
-  return country ? { placeCountryCode: country.code, countryOnly: true } : {};
+const ticketmasterSupportedCountries = [
+  { name: 'United States', code: 'US', aliases: ['United States of America'] },
+  { name: 'Andorra', code: 'AD' }, { name: 'Anguilla', code: 'AI' }, { name: 'Argentina', code: 'AR' },
+  { name: 'Australia', code: 'AU' }, { name: 'Austria', code: 'AT' }, { name: 'Azerbaijan', code: 'AZ' },
+  { name: 'Bahamas', code: 'BS' }, { name: 'Bahrain', code: 'BH' }, { name: 'Barbados', code: 'BB' },
+  { name: 'Belgium', code: 'BE' }, { name: 'Bermuda', code: 'BM' }, { name: 'Brazil', code: 'BR' },
+  { name: 'Bulgaria', code: 'BG' }, { name: 'Canada', code: 'CA' }, { name: 'Chile', code: 'CL' },
+  { name: 'China', code: 'CN' }, { name: 'Colombia', code: 'CO' }, { name: 'Costa Rica', code: 'CR' },
+  { name: 'Croatia', code: 'HR' }, { name: 'Cyprus', code: 'CY' }, { name: 'Czech Republic', code: 'CZ' },
+  { name: 'Denmark', code: 'DK' }, { name: 'Dominican Republic', code: 'DO' }, { name: 'Ecuador', code: 'EC' },
+  { name: 'Estonia', code: 'EE' }, { name: 'Faroe Islands', code: 'FO' }, { name: 'Finland', code: 'FI' },
+  { name: 'France', code: 'FR' }, { name: 'Georgia', code: 'GE' }, { name: 'Germany', code: 'DE' },
+  { name: 'Ghana', code: 'GH' }, { name: 'Gibraltar', code: 'GI' }, { name: 'United Kingdom', code: 'GB', aliases: ['Great Britain'] },
+  { name: 'Greece', code: 'GR' }, { name: 'Hong Kong', code: 'HK' }, { name: 'Hungary', code: 'HU' },
+  { name: 'Iceland', code: 'IS' }, { name: 'India', code: 'IN' }, { name: 'Ireland', code: 'IE' },
+  { name: 'Israel', code: 'IL' }, { name: 'Italy', code: 'IT' }, { name: 'Jamaica', code: 'JM' },
+  { name: 'Japan', code: 'JP' }, { name: 'South Korea', code: 'KR', aliases: ['Korea, Republic of'] },
+  { name: 'Latvia', code: 'LV' }, { name: 'Lebanon', code: 'LB' }, { name: 'Lithuania', code: 'LT' },
+  { name: 'Luxembourg', code: 'LU' }, { name: 'Malaysia', code: 'MY' }, { name: 'Malta', code: 'MT' },
+  { name: 'Mexico', code: 'MX' }, { name: 'Monaco', code: 'MC' }, { name: 'Montenegro', code: 'ME' },
+  { name: 'Morocco', code: 'MA' }, { name: 'Netherlands', code: 'NL' }, { name: 'Netherlands Antilles', code: 'AN' },
+  { name: 'New Zealand', code: 'NZ' }, { name: 'Northern Ireland', code: 'ND' }, { name: 'Norway', code: 'NO' },
+  { name: 'Peru', code: 'PE' }, { name: 'Poland', code: 'PL' }, { name: 'Portugal', code: 'PT' },
+  { name: 'Romania', code: 'RO' }, { name: 'Russia', code: 'RU', aliases: ['Russian Federation'] },
+  { name: 'Saint Lucia', code: 'LC' }, { name: 'Saudi Arabia', code: 'SA' }, { name: 'Serbia', code: 'RS' },
+  { name: 'Singapore', code: 'SG' }, { name: 'Slovakia', code: 'SK' }, { name: 'Slovenia', code: 'SI' },
+  { name: 'South Africa', code: 'ZA' }, { name: 'Spain', code: 'ES' }, { name: 'Sweden', code: 'SE' },
+  { name: 'Switzerland', code: 'CH' }, { name: 'Taiwan', code: 'TW' }, { name: 'Thailand', code: 'TH' },
+  { name: 'Trinidad and Tobago', code: 'TT' }, { name: 'Turkey', code: 'TR' }, { name: 'Ukraine', code: 'UA' },
+  { name: 'United Arab Emirates', code: 'AE' }, { name: 'Uruguay', code: 'UY' }, { name: 'Venezuela', code: 'VE' },
+];
+const ticketmasterCountryCodes = ticketmasterSupportedCountries.map((item) => item.code);
+const ticketmasterSupportedCountryCodeSet = new Set(ticketmasterCountryCodes);
+const supportedTicketmasterCityLocations = ticketmasterCityLocations.filter((item) => ticketmasterSupportedCountryCodeSet.has(item.code));
+const ticketmasterLocations = [
+  ...supportedTicketmasterCityLocations,
+  ...ticketmasterSupportedCountries.map((country) => ({ city: country.name, country: country.name, flag: '\uD83C\uDF0D', code: country.code, countryOnly: true })),
+];
+const escapeTicketmasterPhrase = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const ticketmasterMonths = [
+  ['January', 'Jan'], ['February', 'Feb'], ['March', 'Mar'], ['April', 'Apr'],
+  ['May'], ['June', 'Jun'], ['July', 'Jul'], ['August', 'Aug'],
+  ['September', 'Sep'], ['October', 'Oct'], ['November', 'Nov'], ['December', 'Dec'],
+];
+const ticketmasterMonthPattern = ticketmasterMonths.flat().join('|');
+const parseTicketmasterDateRange = (value) => {
+  const dayRange = value.match(new RegExp(`\\b(\\d{1,2})\\s*(?:-|\\u2013|\\u2014|to)\\s*(\\d{1,2})\\s+(${ticketmasterMonthPattern})\\s+(\\d{4})\\b`, 'i'));
+  const monthYear = dayRange || value.match(new RegExp(`\\b(${ticketmasterMonthPattern})\\s+(\\d{4})\\b`, 'i'));
+  if (!monthYear) return null;
+  const monthToken = dayRange ? dayRange[3] : monthYear[1];
+  const month = ticketmasterMonths.findIndex((names) => names.some((name) => name.toLowerCase() === monthToken.toLowerCase()));
+  const year = Number(dayRange ? dayRange[4] : monthYear[2]);
+  const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const firstDay = dayRange ? Number(dayRange[1]) : 1;
+  const finalDay = dayRange ? Number(dayRange[2]) : lastDay;
+  if (month < 0 || firstDay < 1 || finalDay < firstDay || finalDay > lastDay) return null;
+  let start = new Date(Date.UTC(year, month, firstDay));
+  if (!dayRange) {
+    const now = new Date();
+    if (year === now.getUTCFullYear() && month === now.getUTCMonth() && start < now) start = now;
+  }
+  const end = new Date(Date.UTC(year, month, finalDay, 23, 59, 59));
+  const match = dayRange || monthYear;
+  return {
+    phrase: match[0],
+    startDateTime: start.toISOString().replace(/\.\d{3}Z$/, 'Z'),
+    endDateTime: end.toISOString().replace(/\.\d{3}Z$/, 'Z'),
+  };
+};
+const phraseInSearch = (input, phrase) => {
+  if (/^[a-z]{2}$/i.test(phrase)) return new RegExp(`\\b${escapeTicketmasterPhrase(phrase)}\\b`, 'i').test(input);
+  return input.toLowerCase().includes(phrase.toLowerCase());
+};
+const ticketmasterSearchFilters = (input) => {
+  const dateRange = parseTicketmasterDateRange(input);
+  let remaining = dateRange ? input.replace(dateRange.phrase, ' ') : input;
+  const country = ticketmasterSupportedCountries.find((item) => [item.name, item.code, ...(item.aliases || [])].some((phrase) => phraseInSearch(remaining, phrase)));
+  const city = supportedTicketmasterCityLocations.find((item) => phraseInSearch(remaining, item.city));
+  const useCity = city && (!country || city.city.toLowerCase() !== country.name.toLowerCase());
+  const place = useCity ? city : country;
+  if (place) {
+    const phrase = useCity ? city.city : [country.name, country.code, ...(country.aliases || [])].find((candidate) => phraseInSearch(remaining, candidate));
+    remaining = remaining.replace(new RegExp(escapeTicketmasterPhrase(phrase), 'i'), ' ');
+  }
+  remaining = remaining.replace(/^\s*(?:show\s+me\s+)?all\s+/i, ' ')
+    .replace(/\b(?:events?|scheduled|upcoming|happening|during|from|between|through|in|on|the)\b/gi, ' ');
+  return {
+    keyword: remaining.replace(/\s+/g, ' ').trim(),
+    ...(useCity ? { city: city.city } : {}),
+    ...(place ? { placeCountryCode: place.code, countryOnly: !useCity } : {}),
+    ...(dateRange ? { startDateTime: dateRange.startDateTime, endDateTime: dateRange.endDateTime } : {}),
+  };
 };
 const isGlobalBtsSearch = (keyword) => /\bBTS\b/i.test(keyword.trim());
 const isGlobalOliviaDeanSearch = (keyword) => /\bOLIVIA\s+DEAN\b/i.test(keyword.trim());
 const isWorldwideSearch = (keyword) => Boolean(keyword.trim());
-const searchAllTicketmasterSources = async ({ keyword, countryCode, countryCodes, page, city, placeCountryCode, countryOnly }) => {
+const searchAllTicketmasterSources = async ({ keyword, countryCode, countryCodes, page, city, placeCountryCode, countryOnly, startDateTime, endDateTime }) => {
   const results = await Promise.allSettled([
-    isLiveBackendConfigured() ? searchLiveEvents({ keyword, countryCode, countryCodes, page }) : Promise.resolve({ events: [], hasMore: false, page }),
-    searchTicketmasterEvents({ keyword, countryCodes, page, city, placeCountryCode, countryOnly }),
+    isLiveBackendConfigured() ? searchLiveEvents({ keyword, countryCode, countryCodes, page, city, countryOnly, startDateTime, endDateTime }) : Promise.resolve({ events: [], hasMore: false, page }),
+    searchTicketmasterEvents({ keyword, countryCodes, page, city, placeCountryCode, countryOnly, startDateTime, endDateTime }),
   ]);
   const available = results.filter((result) => result.status === 'fulfilled').map((result) => result.value);
   if (!available.length) throw results[0].reason || new Error('Event search unavailable');
@@ -349,7 +434,7 @@ const App = () => {
     if (previous) setScreen(previous);
     else setScreen('home');
   };
-  const [category, setCategory] = useState('events'); const [query, setQuery] = useState(''); const [visibleCount, setVisibleCount] = useState(4); const [selected, setSelected] = useState(null); const [quantity, setQuantity] = useState(1); const [chosenSeats, setChosenSeats] = useState([]); const [selectedSection, setSelectedSection] = useState(null); const [selectedRow, setSelectedRow] = useState(null); const [ticketType, setTicketType] = useState(''); const [payment, setPayment] = useState('Card'); const [tickets, setTickets] = useState([]); const [transferOrder, setTransferOrder] = useState(null); const [location, setLocation] = useState(ticketmasterLocations[0]); const [liveEvents, setLiveEvents] = useState([]); const [searchedLiveEvents, setSearchedLiveEvents] = useState([]); const [searchedLiveCountryCodes, setSearchedLiveCountryCodes] = useState([]); const [searchedLivePage, setSearchedLivePage] = useState(0); const [searchedLiveHasMore, setSearchedLiveHasMore] = useState(false); const [liveSearchLoading, setLiveSearchLoading] = useState(false); const [livePage, setLivePage] = useState(0); const [liveHasMore, setLiveHasMore] = useState(false); const [liveLoading, setLiveLoading] = useState(false); const [ticketsNavVisible, setTicketsNavVisible] = useState(true); const ticketScrollOffset = useRef(0);
+  const [category, setCategory] = useState('events'); const [query, setQuery] = useState(''); const [visibleCount, setVisibleCount] = useState(4); const [selected, setSelected] = useState(null); const [quantity, setQuantity] = useState(1); const [chosenSeats, setChosenSeats] = useState([]); const [selectedSection, setSelectedSection] = useState(null); const [selectedRow, setSelectedRow] = useState(null); const [ticketType, setTicketType] = useState(''); const [payment, setPayment] = useState('Card'); const [tickets, setTickets] = useState([]); const [transferOrder, setTransferOrder] = useState(null); const [location, setLocation] = useState(ticketmasterLocations[0]); const [locationSearch, setLocationSearch] = useState(''); const [liveEvents, setLiveEvents] = useState([]); const [searchedLiveEvents, setSearchedLiveEvents] = useState([]); const [searchedLiveCountryCodes, setSearchedLiveCountryCodes] = useState([]); const [searchedLivePage, setSearchedLivePage] = useState(0); const [searchedLiveHasMore, setSearchedLiveHasMore] = useState(false); const [liveSearchLoading, setLiveSearchLoading] = useState(false); const [livePage, setLivePage] = useState(0); const [liveHasMore, setLiveHasMore] = useState(false); const [liveLoading, setLiveLoading] = useState(false); const [ticketsNavVisible, setTicketsNavVisible] = useState(true); const ticketScrollOffset = useRef(0);
   useEffect(() => { let active = true; (async () => { const values = await AsyncStorage.multiGet(['tm_profile', 'tm_tickets', 'tm_settings']); if (!active) return; const savedProfile = values[0][1]; const savedTickets = values[1][1]; const savedSettings = values[2][1]; if (savedProfile) setProfile(JSON.parse(savedProfile)); if (savedTickets) setTickets(JSON.parse(savedTickets)); if (savedSettings) setSettings(JSON.parse(savedSettings)); setReady(true); })().catch(() => { if (active) setReady(true); }); return () => { active = false; }; }, []);
   useEffect(() => { if (ready && screen === null) setScreen(profile?.name ? 'home' : 'register'); }, [ready, profile, screen]);
   useEffect(() => { if (screen === 'tickets') { ticketScrollOffset.current = 0; setTicketsNavVisible(true); } }, [screen]);
@@ -385,11 +470,11 @@ const App = () => {
     let active = true;
     const timer = setTimeout(async () => {
       try {
+        const filters = ticketmasterSearchFilters(keyword);
         const btsSearch = isGlobalBtsSearch(keyword);
-        const searchKeyword = btsSearch ? 'BTS' : isGlobalOliviaDeanSearch(keyword) ? 'Olivia Dean' : keyword;
-        const countryCodes = ticketmasterCountryCodes;
-        const placeSearch = ticketmasterPlaceSearch(keyword);
-        let result = await searchAllTicketmasterSources({ keyword: searchKeyword, countryCode: location.code, countryCodes, page: 0, ...placeSearch });
+        const searchKeyword = btsSearch ? 'BTS' : isGlobalOliviaDeanSearch(keyword) ? 'Olivia Dean' : filters.keyword;
+        const countryCodes = filters.placeCountryCode ? [filters.placeCountryCode] : ticketmasterCountryCodes;
+        let result = await searchAllTicketmasterSources({ ...filters, keyword: searchKeyword, countryCode: location.code, countryCodes, page: 0 });
 
         if (active) {
           setSearchedLiveEvents(btsSearch ? result.events.filter((event) => /\bBTS\b/i.test(event.name)) : result.events);
@@ -408,12 +493,14 @@ const App = () => {
     if (!query.trim() || !searchedLiveHasMore || liveSearchLoading) return;
     setLiveSearchLoading(true);
     try {
+      const filters = ticketmasterSearchFilters(query);
       const btsSearch = isGlobalBtsSearch(query);
+      const countryCodes = filters.placeCountryCode ? [filters.placeCountryCode] : searchedLiveCountryCodes.length ? searchedLiveCountryCodes : [location.code];
       const result = await searchAllTicketmasterSources({
-        keyword: btsSearch ? 'BTS' : isGlobalOliviaDeanSearch(query) ? 'Olivia Dean' : query.trim(),
+        ...filters,
+        keyword: btsSearch ? 'BTS' : isGlobalOliviaDeanSearch(query) ? 'Olivia Dean' : filters.keyword,
         countryCode: location.code,
-        countryCodes: searchedLiveCountryCodes.length ? searchedLiveCountryCodes : [location.code],
-        ...ticketmasterPlaceSearch(query),
+        countryCodes,
         page: searchedLivePage + 1,
       });
       const nextEvents = btsSearch ? result.events.filter((event) => /\bBTS\b/i.test(event.name)) : result.events;
@@ -475,7 +562,22 @@ const App = () => {
   if (screen === 'success') return top(<View style={styles.success}><View style={styles.successCircle}><Text style={styles.successCheck}>✓</Text></View><Text style={styles.successTitle}>{selected?.isLiveTicketmasterEvent ? 'Preview saved' : 'You\'re all set!'}</Text><Text style={styles.successCopy}>{selected?.isLiveTicketmasterEvent ? 'Your demo order preview is in My Tickets. It is not a Ticketmaster purchase or valid event ticket.' : 'Your order is confirmed and your digital tickets are now in your account.'}</Text><TouchableOpacity onPress={() => setScreen('tickets')} style={styles.primary}><Text style={styles.primaryText}>View my tickets</Text></TouchableOpacity><TouchableOpacity onPress={() => setScreen('home')}><Text style={styles.textButton}>Explore more events</Text></TouchableOpacity></View>);
   if (screen === 'transfer' && transferOrder) return <TransferTicketsScreen order={transferOrder} onCancel={() => setScreen('tickets')} onComplete={() => setScreen('tickets')} />;
   if (screen === 'tickets') return <SafeAreaView style={styles.ticketsScreen} edges={['top', 'bottom']}><View style={styles.ticketsHeader}><TouchableOpacity accessibilityLabel="Go back" onPress={goBack} style={styles.ticketsClose}><Text style={styles.ticketsCloseText}>×</Text></TouchableOpacity><Text style={styles.ticketsHeaderTitle}>My Tickets</Text><TouchableOpacity onPress={() => { setName(profile?.name || ''); setScreen('profile'); }} style={styles.ticketsMenu}><Text style={styles.ticketsMenuText}>•••</Text></TouchableOpacity></View><ScrollView style={styles.ticketsScroll} showsVerticalScrollIndicator={false} scrollEventThrottle={16} onScroll={({ nativeEvent }) => { const nextOffset = Math.max(0, nativeEvent.contentOffset.y); if (nextOffset > ticketScrollOffset.current + 10) setTicketsNavVisible(true); if (nextOffset < ticketScrollOffset.current - 10) setTicketsNavVisible(false); ticketScrollOffset.current = nextOffset; }} contentContainerStyle={[styles.ticketsPage, ticketsNavVisible && styles.ticketsPageWithNav]}>{tickets.length ? tickets.map((ticket) => <TicketCard key={ticket.id} order={ticket} onBack={goBack} onTransfer={(order) => { setTransferOrder(order); setScreen('transfer'); }} onDelete={deleteTicket} />) : <View style={styles.empty}><Text style={styles.emptyTitle}>No tickets yet</Text><Text style={styles.emptyCopy}>Tickets you purchase will appear here.</Text><TouchableOpacity onPress={() => setScreen('home')} style={styles.outline}><Text style={styles.outlineText}>Find an event</Text></TouchableOpacity></View>}</ScrollView>{tickets.length > 0 && <View style={styles.ticketFloatingActions}><TouchableOpacity onPress={() => { setTransferOrder(tickets[0]); setScreen('transfer'); }} style={styles.floatingAction}><Text style={styles.floatingTransferIcon}>↗</Text><Text style={[styles.floatingActionText, styles.floatingActionTextActive]}>Transfer</Text></TouchableOpacity><View style={styles.floatingDivider} /><View accessibilityState={{ disabled: true }} style={styles.floatingAction}><Text style={styles.floatingSellIcon}>⟳</Text><Text style={styles.floatingActionText}>Sell</Text></View></View>}{ticketsNavVisible && <View style={styles.bottomNav}><TouchableOpacity onPress={() => setScreen('home')} style={styles.navItem}><Text style={styles.navIcon}>⌕</Text><Text style={styles.navLabel}>Discover</Text></TouchableOpacity><TouchableOpacity onPress={() => setScreen('home')} style={styles.navItem}><Text style={[styles.navIcon, styles.navInactiveIcon]}>♡</Text><Text style={styles.navLabel}>For You</Text></TouchableOpacity><TouchableOpacity onPress={() => setScreen('tickets')} style={styles.navActiveItem}><View style={styles.navActiveCircle}><Text style={styles.navActiveIcon}>▧</Text></View><Text style={styles.navActiveLabel}>My Tickets</Text></TouchableOpacity><TouchableOpacity onPress={() => setScreen('home')} style={styles.navItem}><Text style={styles.navIcon}>◈</Text><Text style={styles.navLabel}>Sell</Text></TouchableOpacity><TouchableOpacity onPress={() => { setName(profile?.name || ''); setScreen('profile'); }} style={styles.navItem}><NavProfileIcon /><Text style={styles.navLabel}>My Account</Text></TouchableOpacity></View>}</SafeAreaView>;
-  if (screen === 'location') return top(<ScrollView contentContainerStyle={styles.locationPage}><Text style={styles.locationTitle}>Choose location</Text><Text style={styles.locationLead}>Ticketmaster-supported locations</Text>{ticketmasterLocations.map((item) => <TouchableOpacity key={`${item.code}-${item.city}`} onPress={() => { setLocation(item); setScreen('home'); }} style={[styles.locationOption, location.city === item.city && styles.locationOptionSelected]}><Text style={styles.locationFlag}>{item.flag}</Text><View style={styles.locationOptionCopy}><Text style={styles.locationCity}>{item.city}</Text><Text style={styles.locationCountry}>{item.country}</Text></View>{location.city === item.city && <Text style={styles.locationSelectedMark}>✓</Text>}</TouchableOpacity>)}</ScrollView>);
+  if (screen === 'location') return top(<ScrollView contentContainerStyle={styles.locationPage}>
+    <Text style={styles.locationTitle}>Choose location</Text>
+    <Text style={styles.locationLead}>Ticketmaster-supported countries and cities</Text>
+    <TextInput value={locationSearch} onChangeText={setLocationSearch} placeholder="Search country or city" style={[styles.input, { marginBottom: 12 }]} />
+    {ticketmasterLocations.filter((item) => `${item.city} ${item.country} ${item.code}`.toLowerCase().includes(locationSearch.trim().toLowerCase())).map((item) => {
+      const selectedLocation = location.city === item.city && Boolean(location.countryOnly) === Boolean(item.countryOnly);
+      return <TouchableOpacity key={`${item.code}-${item.city}-${item.countryOnly ? 'country' : 'city'}`} onPress={() => { setLocation(item); setLocationSearch(''); setScreen('home'); }} style={[styles.locationOption, selectedLocation && styles.locationOptionSelected]}>
+        <Text style={styles.locationFlag}>{item.flag}</Text>
+        <View style={styles.locationOptionCopy}>
+          <Text style={styles.locationCity}>{item.city}</Text>
+          <Text style={styles.locationCountry}>{item.countryOnly ? 'Country-wide event results' : item.country}</Text>
+        </View>
+        {selectedLocation && <Text style={styles.locationSelectedMark}>{'\u2713'}</Text>}
+      </TouchableOpacity>;
+    })}
+  </ScrollView>);
   if (screen === 'home') return <SafeAreaView style={styles.newHomeScreen} edges={['top', 'bottom']}><ScrollView showsVerticalScrollIndicator={false} scrollEventThrottle={16} onScroll={({ nativeEvent }) => { const remaining = nativeEvent.contentSize.height - nativeEvent.layoutMeasurement.height - nativeEvent.contentOffset.y; if (remaining < 260 && visibleCount < displayedEvents.length) setVisibleCount((count) => Math.min(count + 8, displayedEvents.length)); }} contentContainerStyle={styles.newHomeScroll}><View style={styles.newHomeHeader}><View style={styles.homeLogoRow}><Text style={styles.homeWordmark}>ticketmaster</Text><TouchableOpacity onPress={() => setScreen('location')} style={styles.countryPicker}><Text style={styles.countryFlag}>{location.flag}</Text></TouchableOpacity></View><View style={styles.homeFilters}><TouchableOpacity onPress={() => setScreen('location')} style={styles.homeFilter}><Text style={styles.homeFilterIcon}>⌖</Text><View><Text style={styles.homeFilterLabel}>LOCATION</Text><Text style={styles.homeFilterValue}>{location.city}</Text></View></TouchableOpacity><View style={styles.homeFilterDivider} /><TouchableOpacity style={styles.homeFilter}><Text style={styles.homeFilterIcon}>▣</Text><View><Text style={styles.homeFilterLabel}>DATES</Text><Text style={styles.homeFilterValue}>All Dates</Text></View></TouchableOpacity><Text style={styles.homeChevron}>⌄</Text></View><View style={styles.homeSearch}><Text style={styles.homeSearchLabel}>SEARCH</Text><TextInput value={query} onChangeText={setQuery} placeholder="Artist, Event or Venue" placeholderTextColor="#737373" style={styles.homeSearchInput} /><Text style={styles.homeSearchIcon}>⌕</Text></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.homeChips}>{[{ id: 'Concerts', label: 'Concerts' }, { id: 'Sports', label: 'Sports' }, { id: 'Theater', label: 'Arts, Theater & Comedy' }, { id: 'Festivals', label: 'Family' }, { id: 'events', label: 'Albuquerque' }].map((item) => <TouchableOpacity key={item.id} onPress={() => setCategory(item.id)} style={[styles.homeChip, category === item.id && styles.homeChipActive]}><Text style={[styles.homeChipText, category === item.id && styles.homeChipTextActive]}>{item.label}</Text></TouchableOpacity>)}</ScrollView></View>{displayedEvents[0] && <TouchableOpacity onPress={() => openEvent(displayedEvents[0])} activeOpacity={.92} style={styles.homeFeature}><Image source={{ uri: displayedEvents[0].image }} style={styles.homeFeatureImage} /><View style={styles.homeFeatureShade} /><View style={styles.homeFeatureCopy}><Text style={styles.homeFeatureDate}>{day(displayedEvents[0])} · {displayedEvents[0].time || 'Time TBA'}</Text><Text style={styles.homeFeatureName}>{displayedEvents[0].name}</Text><TouchableOpacity onPress={() => openEvent(displayedEvents[0])} style={styles.homeFeatureButton}><Text style={styles.homeFeatureButtonText}>Reserve tickets</Text></TouchableOpacity></View></TouchableOpacity>}<View style={styles.homeFeed}>{displayedEvents.slice(1, eventListLimit).map((event) => <HomePosterCard key={event.id} event={event} onPress={openEvent} />)}</View></ScrollView><HomeBottomNav onHome={() => setScreen('home')} onTickets={() => setScreen('tickets')} onProfile={() => { setName(profile?.name || ''); setScreen('profile'); }} /></SafeAreaView>;
   if (screen === 'home') return top(<ScrollView showsVerticalScrollIndicator={false} scrollEventThrottle={16} onScroll={({ nativeEvent }) => { const { layoutMeasurement, contentOffset, contentSize } = nativeEvent; const nearEnd = layoutMeasurement.height + contentOffset.y >= contentSize.height - 520; if (nearEnd && isTicketmasterConfigured() && liveHasMore) loadLiveEvents(livePage + 1, true); else if (nearEnd && visibleCount < displayedEvents.length) setVisibleCount((count) => Math.min(count + 12, displayedEvents.length)); }} contentContainerStyle={styles.scroll}><ImageBackground source={{ uri: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1200&q=90' }} style={styles.hero}><View style={styles.heroShade} /><View style={styles.heroBody}><TouchableOpacity onPress={() => { setName(profile?.name || ''); setScreen('profile'); }} style={styles.homeProfile}>{profile?.image ? <Image source={{ uri: profile.image }} style={styles.homeProfileImage} /> : <View style={styles.homeProfilePlaceholder}><Text style={styles.homeProfileInitial}>{(profile?.name || 'U').charAt(0).toUpperCase()}</Text></View>}<View><Text style={styles.homeProfileName}>{profile?.name || 'Your profile'}</Text><Text style={styles.homeProfileAction}>Tap to change photo</Text></View></TouchableOpacity><Text style={styles.eyebrow}>LIVE EVENTS, MADE EASY</Text><Text style={styles.heroTitle}>Your next unforgettable night starts here.</Text><Text style={styles.heroCopy}>Hi {profile ? profile.name : 'there'}. Find concerts, sport, theatre and festivals near you.</Text><View style={styles.search}><Text style={styles.searchSymbol}>⌕</Text><TextInput value={query} onChangeText={setQuery} placeholder="Artist, event or venue" placeholderTextColor="#667085" style={styles.searchInput} /></View></View></ImageBackground><View style={styles.categories}><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>{categories.map((item) => <TouchableOpacity key={item.id} onPress={() => { setCategory(item.id); setVisibleCount(8); }} style={[styles.category, category === item.id && styles.categoryActive]}><Text style={[styles.categoryIcon, category === item.id && styles.categoryIconActive]}>{item.icon}</Text><Text style={[styles.categoryText, category === item.id && styles.categoryTextActive]}>{item.label}</Text></TouchableOpacity>)}</ScrollView></View><View style={styles.sectionHead}><Text style={styles.sectionKicker}>{liveEvents.length ? 'LIVE FROM TICKETMASTER' : 'HAPPENING NOW'}</Text><Text style={styles.sectionTitle}>Featured events</Text></View><FlatList horizontal data={displayedEvents.slice(0, 4)} keyExtractor={(item) => item.id.toString()} renderItem={({ item }) => <EventCard event={item} onPress={openEvent} currency={settings.currency} />} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featured} initialNumToRender={2} maxToRenderPerBatch={2} windowSize={3} removeClippedSubviews /><View style={styles.sectionHead}><Text style={styles.sectionKicker}>DON'T MISS OUT</Text><Text style={styles.sectionTitle}>{category === 'events' ? 'Upcoming for you' : category}</Text></View><View style={styles.eventList}>{displayedEvents.slice(0, eventListLimit).map((event) => <EventCard compact key={event.id} event={event} onPress={openEvent} currency={settings.currency} />)}{((!isWorldwideSearch(query) && visibleCount < displayedEvents.length) || liveLoading || liveSearchLoading || (query.trim() && searchedLiveHasMore)) && <View style={styles.loadingMore}><ActivityIndicator color="#026cdf" /><Text style={styles.loadingMoreText}>{liveLoading ? 'Loading Ticketmaster events…' : 'Loading more events…'}</Text></View>}</View></ScrollView>);
   return <View style={{ flex: 1 }} />;

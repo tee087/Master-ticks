@@ -119,7 +119,10 @@ class TicketmasterClient:
 
     def search_events(self, keyword: str = "", country_code: str = "US",
                       page: int = 0, size: int = 20,
-                      etag: Optional[str] = None) -> Optional[dict]:
+                      etag: Optional[str] = None,
+                      start_date_time: Optional[str] = None,
+                      end_date_time: Optional[str] = None,
+                      city: Optional[str] = None) -> Optional[dict]:
         """Return the real-time event listing.
 
         Primary source is the official public Discovery API when an API key is
@@ -131,7 +134,7 @@ class TicketmasterClient:
         not-modified checks.
         """
         if self.api_key:
-            return self._search_public(keyword, country_code, page, size)
+            return self._search_public(keyword, country_code, page, size, start_date_time, end_date_time, city)
         data = self._get_next_data()
         if isinstance(data, dict) and data.get("error"):
             return data
@@ -149,7 +152,9 @@ class TicketmasterClient:
         }
 
     def _search_public(self, keyword: str, country_code: str, page: int,
-                       size: int) -> Optional[dict]:
+                       size: int, start_date_time: Optional[str] = None,
+                       end_date_time: Optional[str] = None,
+                       city: Optional[str] = None) -> Optional[dict]:
         """Query the public Discovery API (key-based, IP-agnostic).
 
         ``size`` is clamped to the API's 200-record maximum; callers page via
@@ -164,11 +169,13 @@ class TicketmasterClient:
             "countryCode": country_code,
             "size": str(min(int(size), DISCOVERY_MAX_SIZE)),
             "page": str(int(page)),
-            "startDateTime": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "endDateTime": (now + timedelta(days=DISCOVERY_WINDOW_DAYS)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "startDateTime": start_date_time or now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "endDateTime": end_date_time or (now + timedelta(days=DISCOVERY_WINDOW_DAYS)).strftime("%Y-%m-%dT%H:%M:%SZ"),
         }
         if keyword.strip():
             params["keyword"] = keyword.strip()
+        if city and city.strip():
+            params["city"] = city.strip()
         result = self._request("GET", DISCOVERY_EVENTS_URL, params=params)
         if isinstance(result, dict) and result.get("_embedded"):
             result["etag"] = f"public:{page}:{size}"

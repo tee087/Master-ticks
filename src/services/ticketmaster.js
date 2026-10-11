@@ -39,14 +39,19 @@ export const fetchLiveSnapshot = async () => {
   return { events: events.map(normalizeLiveEvent), hasMore: false };
 };
 
-export const searchLiveEvents = async ({ keyword, countryCode = 'US', countryCodes, page = 0 }) => {
+export const searchLiveEvents = async ({ keyword = '', countryCode = 'US', countryCodes, page = 0, city, countryOnly = false, startDateTime, endDateTime }) => {
   const url = backendUrl();
-  if (!url || !keyword?.trim()) return [];
+  if (!url || (!keyword.trim() && !city && !countryOnly && !startDateTime && !endDateTime)) return [];
   const countries = [...new Set((countryCodes?.length ? countryCodes : [countryCode]).filter(Boolean))];
   const responses = [];
   for (let start = 0; start < countries.length; start += 5) {
     const batch = await Promise.allSettled(countries.slice(start, start + 5).map(async (code) => {
-      const params = new URLSearchParams({ keyword: keyword.trim(), countryCode: code, page: String(page), size: '200' });
+      const params = new URLSearchParams({ countryCode: code, page: String(page), size: '200' });
+      if (keyword.trim()) params.set('keyword', keyword.trim());
+      if (city) params.set('city', city);
+      if (countryOnly) params.set('countryOnly', 'true');
+      if (startDateTime) params.set('startDateTime', startDateTime);
+      if (endDateTime) params.set('endDateTime', endDateTime);
       const res = await fetch(`${url}/search?${params.toString()}`, {
         headers: { 'Cache-Control': 'no-store' },
       });
@@ -128,18 +133,21 @@ const normalizeDiscoveryEvent = (event, countryCode) => {
     isLiveTicketmasterEvent: true,
   };
 };
-export const searchTicketmasterEvents = async ({ keyword = '', countryCodes = ['US'], page = 0, city, placeCountryCode, countryOnly = false }) => {
+export const searchTicketmasterEvents = async ({ keyword = '', countryCodes = ['US'], page = 0, city, placeCountryCode, countryOnly = false, startDateTime, endDateTime }) => {
   const apiKey = ticketmasterApiKey();
   const searchTerm = keyword.trim();
-  if (!apiKey || (!searchTerm && !city && !countryOnly)) return { events: [], page, hasMore: false };
+  if (!apiKey || (!searchTerm && !city && !countryOnly && !startDateTime && !endDateTime)) return { events: [], page, hasMore: false };
   const countries = [...new Set((countryCodes || []).filter(Boolean))];
   const successful = [];
   const failures = [];
 
-  if (searchTerm) {
+  if (searchTerm || startDateTime || endDateTime) {
     for (let start = 0; start < countries.length; start += 5) {
       const batch = await Promise.allSettled(countries.slice(start, start + 5).map(async (countryCode) => {
-        const params = new URLSearchParams({ apikey: apiKey, source: 'ticketmaster', keyword: searchTerm, countryCode, size: '200', page: String(page) });
+        const params = new URLSearchParams({ apikey: apiKey, source: 'ticketmaster', countryCode, size: '200', page: String(page) });
+        if (searchTerm) params.set('keyword', searchTerm);
+        if (startDateTime) params.set('startDateTime', startDateTime);
+        if (endDateTime) params.set('endDateTime', endDateTime);
         const response = await fetch(`${API_URL}?${params.toString()}`);
         if (!response.ok) throw new Error(`Ticketmaster search failed (${response.status})`);
         return { payload: await response.json(), countryCode };
@@ -148,10 +156,12 @@ export const searchTicketmasterEvents = async ({ keyword = '', countryCodes = ['
     }
   }
 
-  if ((city || countryOnly) && placeCountryCode) {
+  if ((city || (countryOnly && !startDateTime && !endDateTime)) && placeCountryCode) {
     try {
       const params = new URLSearchParams({ apikey: apiKey, source: 'ticketmaster', countryCode: placeCountryCode, size: '200', page: String(page) });
       if (city) params.set('city', city);
+      if (startDateTime) params.set('startDateTime', startDateTime);
+      if (endDateTime) params.set('endDateTime', endDateTime);
       const response = await fetch(`${API_URL}?${params.toString()}`);
       if (!response.ok) throw new Error(`Ticketmaster place search failed (${response.status})`);
       successful.push({ payload: await response.json(), countryCode: placeCountryCode });

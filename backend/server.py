@@ -102,12 +102,17 @@ def make_handler(tracker_started):
                     size = max(1, min(200, int((params.get("size") or [200])[0])))
                 except ValueError:
                     size = 200
-                if not keyword:
+                city = (params.get("city") or [""])[0].strip()
+                country_only = (params.get("countryOnly") or [""])[0].lower() == "true"
+                start_date_time = (params.get("startDateTime") or [""])[0].strip() or None
+                end_date_time = (params.get("endDateTime") or [""])[0].strip() or None
+                if not keyword and not city and not country_only and not start_date_time and not end_date_time:
                     self._send(200, [])
                     return
                 try:
                     result = tracker_started["tracker"].client.search_events(
-                        keyword=keyword, country_code=country_code, page=page, size=size
+                        keyword=keyword, country_code=country_code, page=page, size=size,
+                        start_date_time=start_date_time, end_date_time=end_date_time, city=city,
                     )
                 except Exception:
                     self._send(502, {"error": "ticketmaster_search_failed"})
