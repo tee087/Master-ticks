@@ -1,5 +1,6 @@
 {
   "name": "Ticketmaster",
+  "slug": "master-ticks",
   "version": "1.0.0",
   "orientation": "portrait",
   "icon": "./assets/image.png",
