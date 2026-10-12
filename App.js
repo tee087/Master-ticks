@@ -306,17 +306,14 @@ const ticketmasterSearchFilters = (input) => {
 };
 const isGlobalBtsSearch = (keyword) => /\bBTS\b/i.test(keyword.trim());
 const isGlobalOliviaDeanSearch = (keyword) => /\bOLIVIA\s+DEAN\b/i.test(keyword.trim());
-const isWorldwideSearch = (keyword) => Boolean(keyword.trim());
-const searchAllTicketmasterSources = async ({ keyword, countryCode, countryCodes, page, city, placeCountryCode, countryOnly, startDateTime, endDateTime }) => {
-  const results = await Promise.allSettled([
-    isLiveBackendConfigured() ? searchLiveEvents({ keyword, countryCode, countryCodes, page, city, countryOnly, startDateTime, endDateTime }) : Promise.resolve({ events: [], hasMore: false, page }),
-    searchTicketmasterEvents({ keyword, countryCodes, page, city, placeCountryCode, countryOnly, startDateTime, endDateTime }),
-  ]);
-  const available = results.filter((result) => result.status === 'fulfilled').map((result) => result.value);
-  if (!available.length) throw results[0].reason || new Error('Event search unavailable');
-  const eventsById = new Map();
-  available.forEach((result) => (result.events || []).forEach((event) => eventsById.set(event.ticketmasterId || event.id, event)));
-  return { events: [...eventsById.values()], page, hasMore: available.some((result) => result.hasMore) };
+
+const searchAllTicketmasterSources = async ({ keyword, countryCode, countryCodes, page, city, placeCountryCode, countryOnly, startDateTime, endDateTime, signal }) => {
+  const backendSearch = { keyword, countryCode, countryCodes, page, city, countryOnly, startDateTime, endDateTime, signal };
+  const directSearch = { keyword, countryCodes, page, city, placeCountryCode, countryOnly, startDateTime, endDateTime, signal };
+  if (isLiveBackendConfigured()) {
+    return searchLiveEvents(backendSearch);
+  }
+  return searchTicketmasterEvents(directSearch);
 };
 
 const TicketBarcodeModal = ({ order, visible, onClose }) => {
@@ -442,8 +439,15 @@ const App = () => {
     if (previous) setScreen(previous);
     else setScreen('home');
   };
-  const [category, setCategory] = useState('events'); const [query, setQuery] = useState(''); const [visibleCount, setVisibleCount] = useState(4); const [selected, setSelected] = useState(null); const [quantity, setQuantity] = useState(1); const [chosenSeats, setChosenSeats] = useState([]); const [selectedSection, setSelectedSection] = useState(null); const [selectedRow, setSelectedRow] = useState(null); const [ticketType, setTicketType] = useState(''); const [payment, setPayment] = useState('Card'); const [tickets, setTickets] = useState([]); const [transferOrder, setTransferOrder] = useState(null); const [location, setLocation] = useState(ticketmasterLocations[0]); const [locationSearch, setLocationSearch] = useState(''); const [liveEvents, setLiveEvents] = useState([]); const [searchedLiveEvents, setSearchedLiveEvents] = useState([]); const [searchedLiveCountryCodes, setSearchedLiveCountryCodes] = useState([]); const [searchedLivePage, setSearchedLivePage] = useState(0); const [searchedLiveHasMore, setSearchedLiveHasMore] = useState(false); const [liveSearchLoading, setLiveSearchLoading] = useState(false); const [livePage, setLivePage] = useState(0); const [liveHasMore, setLiveHasMore] = useState(false); const [liveLoading, setLiveLoading] = useState(false); const [ticketsNavVisible, setTicketsNavVisible] = useState(true); const ticketScrollOffset = useRef(0);
-  useEffect(() => { let active = true; (async () => { const values = await AsyncStorage.multiGet(['tm_profile', 'tm_tickets', 'tm_settings']); if (!active) return; const savedProfile = values[0][1]; const savedTickets = values[1][1]; const savedSettings = values[2][1]; if (savedProfile) setProfile(JSON.parse(savedProfile)); if (savedTickets) setTickets(JSON.parse(savedTickets)); if (savedSettings) setSettings(JSON.parse(savedSettings)); setReady(true); })().catch(() => { if (active) setReady(true); }); return () => { active = false; }; }, []);
+  const [category, setCategory] = useState('events'); const [query, setQuery] = useState(''); const [visibleCount, setVisibleCount] = useState(4); const [selected, setSelected] = useState(null); const [quantity, setQuantity] = useState(1); const [chosenSeats, setChosenSeats] = useState([]); const [selectedSection, setSelectedSection] = useState(null); const [selectedRow, setSelectedRow] = useState(null); const [ticketType, setTicketType] = useState(''); const [payment, setPayment] = useState('Card'); const [tickets, setTickets] = useState([]); const [transferOrder, setTransferOrder] = useState(null); const [location, setLocation] = useState(ticketmasterLocations[0]); const [locationSearch, setLocationSearch] = useState(''); const [liveEvents, setLiveEvents] = useState([]); const [liveFeedStatus, setLiveFeedStatus] = useState('loading'); const [liveSearchStatus, setLiveSearchStatus] = useState('idle'); const [searchRetryToken, setSearchRetryToken] = useState(0); const [searchedLiveEvents, setSearchedLiveEvents] = useState([]); const [searchedLiveQueryKey, setSearchedLiveQueryKey] = useState(''); const [searchedLiveCountryCodes, setSearchedLiveCountryCodes] = useState([]); const [searchedLivePage, setSearchedLivePage] = useState(0); const [searchedLiveHasMore, setSearchedLiveHasMore] = useState(false); const [liveSearchLoading, setLiveSearchLoading] = useState(false); const [livePage, setLivePage] = useState(0); const [liveHasMore, setLiveHasMore] = useState(false); const [liveLoading, setLiveLoading] = useState(false); const [ticketsNavVisible, setTicketsNavVisible] = useState(true); const ticketScrollOffset = useRef(0); const activeSearchControllers = useRef(new Set()); const currentQueryKey = useRef('');
+  useEffect(() => { let active = true; (async () => { const values = await AsyncStorage.multiGet(['tm_profile', 'tm_tickets', 'tm_settings', 'tm_live_events']); if (!active) return; const savedProfile = values[0][1]; const savedTickets = values[1][1]; const savedSettings = values[2][1]; if (savedProfile) setProfile(JSON.parse(savedProfile)); if (savedTickets) setTickets(JSON.parse(savedTickets)); if (savedSettings) setSettings(JSON.parse(savedSettings)); if (values[3][1]) { try { const cachedFeed = JSON.parse(values[3][1]); if (Array.isArray(cachedFeed)) setLiveEvents(cachedFeed); } catch (_) {} } setReady(true); })().catch(() => { if (active) setReady(true); }); return () => { active = false; }; }, []);
+  useEffect(() => {
+    if (!ready) return;
+    const timer = setTimeout(() => {
+      AsyncStorage.setItem('tm_live_events', JSON.stringify(liveEvents)).catch(() => {});
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [ready, liveEvents]);
   useEffect(() => { if (ready && screen === null) setScreen(profile?.name ? 'home' : 'register'); }, [ready, profile, screen]);
   useEffect(() => { if (screen === 'tickets') { ticketScrollOffset.current = 0; setTicketsNavVisible(true); } }, [screen]);
   const saveProfile = async (image = profile?.image) => { if (!name.trim()) return; const next = { name: name.trim(), image }; await AsyncStorage.setItem('tm_profile', JSON.stringify(next)); setProfile(next); };
@@ -465,41 +469,62 @@ const App = () => {
   };
   const catalog = useMemo(() => [...events, ...importedTicketmasterEvents, ...liveEvents].map((event) => ({ ...event, price: event.price ?? estimatedPrice(event), searchText: [event.name, event.venue, event.venueAddress, event.venueLocationText, event.city, event.stateCode, event.countryCode, event.country, event.postalCode, event.place?.name, event.place?.city?.name].filter(Boolean).join(' ').toLowerCase() })), [events, importedTicketmasterEvents, liveEvents]);
   const filtered = useMemo(() => { const base = category === 'events' ? catalog : catalog.filter((e) => e.category === category); const q = query.trim().toLowerCase(); return q ? base.filter((e) => e.searchText.includes(q)) : base; }, [catalog, category, query]);
+  currentQueryKey.current = query.trim().toLowerCase();
   useEffect(() => { setVisibleCount(4); }, [category, query]);
-  const loadLiveEvents = useCallback(async (page = 0, append = false) => { if (isLiveBackendConfigured() || query.trim() || !isTicketmasterConfigured() || liveLoading) return; setLiveLoading(true); try { const result = await fetchTicketmasterEvents({ keyword: query, category, page, countryCode: location.code }); setLiveEvents((current) => append ? [...current, ...result.events] : result.events); setVisibleCount((count) => Math.max(count, (page + 1) * 20)); setLivePage(page); setLiveHasMore(result.hasMore); } catch (_) { if (!append) setLiveEvents([]); } finally { setLiveLoading(false); } }, [query, category, location.code, liveLoading]);
+  const loadLiveEvents = useCallback(async (page = 0, append = false) => { if (isLiveBackendConfigured() || query.trim() || !isTicketmasterConfigured() || liveLoading) return; setLiveLoading(true); setLiveFeedStatus('loading'); try { const result = await fetchTicketmasterEvents({ keyword: query, category, page, countryCode: location.code }); setLiveEvents((current) => append ? [...current, ...result.events] : result.events); setLiveFeedStatus(result.events.length ? 'ready' : 'empty'); setVisibleCount((count) => Math.max(count, (page + 1) * 20)); setLivePage(page); setLiveHasMore(result.hasMore); } catch (_) { setLiveFeedStatus('error'); } finally { setLiveLoading(false); } }, [query, category, location.code, liveLoading]);
   useEffect(() => { if (isLiveBackendConfigured() || query.trim()) return; if (!isTicketmasterConfigured()) return; const timer = setTimeout(() => loadLiveEvents(0), 0); return () => clearTimeout(timer); }, [category, query, location.code, loadLiveEvents]);
   useEffect(() => {
     const keyword = query.trim();
-    setSearchedLiveEvents([]);
+    const queryKey = keyword.toLowerCase();
+    setLiveSearchStatus(keyword ? 'loading' : 'idle');
     setSearchedLiveCountryCodes([]);
     setSearchedLivePage(0);
     setSearchedLiveHasMore(false);
     if (!keyword) return;
+    for (const request of activeSearchControllers.current) request.abort();
+    activeSearchControllers.current.clear();
     let active = true;
+    const controller = new AbortController();
+    activeSearchControllers.current.add(controller);
     const timer = setTimeout(async () => {
       try {
         const filters = ticketmasterSearchFilters(keyword);
         const btsSearch = isGlobalBtsSearch(keyword);
         const searchKeyword = btsSearch ? 'BTS' : isGlobalOliviaDeanSearch(keyword) ? 'Olivia Dean' : filters.keyword;
         const countryCodes = filters.placeCountryCode ? [filters.placeCountryCode] : ticketmasterCountryCodes;
-        let result = await searchAllTicketmasterSources({ ...filters, keyword: searchKeyword, countryCode: location.code, countryCodes, page: 0 });
-
+        const result = await searchAllTicketmasterSources({
+          ...filters, keyword: searchKeyword, countryCode: location.code, countryCodes,
+          page: 0, signal: controller.signal,
+        });
         if (active) {
-          setSearchedLiveEvents(btsSearch ? result.events.filter((event) => /\bBTS\b/i.test(event.name)) : result.events);
+          const freshEvents = btsSearch ? result.events.filter((event) => /\bBTS\b/i.test(event.name)) : result.events;
+          const keepEarlierResults = result.partial || result.rateLimited || result.stale;
+          setSearchedLiveEvents((current) => {
+            if (!keepEarlierResults) return freshEvents;
+            const previous = searchedLiveQueryKey === queryKey ? current : [];
+            return [...new Map([...previous, ...freshEvents].map((event) => [event.ticketmasterId || event.id, event])).values()];
+          });
+          setSearchedLiveQueryKey(queryKey);
           setSearchedLiveCountryCodes(countryCodes);
           setSearchedLivePage(result.page);
-          setSearchedLiveHasMore(result.hasMore);
+          setSearchedLiveHasMore(result.hasMore && !result.partial && !result.rateLimited && !result.stale);
+          setLiveSearchStatus(result.rateLimited ? 'rateLimited' : result.stale ? 'stale' : result.partial ? 'partial' : freshEvents.length ? 'ready' : 'empty');
         }
       } catch (error) {
-        console.warn('Ticketmaster search error', error);
-        if (active) setSearchedLiveEvents([]);
+        if (active && error.name !== 'AbortError') {
+          console.warn('Ticketmaster search error', error);
+          setLiveSearchStatus(error.status === 429 ? 'rateLimited' : 'error');
+        }
       }
-    }, 350);
-    return () => { active = false; clearTimeout(timer); };
-  }, [query, location.code]);
+    }, 850);
+    return () => { active = false; clearTimeout(timer); for (const request of activeSearchControllers.current) request.abort(); activeSearchControllers.current.clear(); };
+  }, [query, location.code, searchRetryToken]);
   const loadMoreLiveSearch = useCallback(async () => {
-    if (!query.trim() || !searchedLiveHasMore || liveSearchLoading) return;
+    const requestQueryKey = query.trim().toLowerCase();
+    if (!requestQueryKey || searchedLiveQueryKey !== requestQueryKey || !searchedLiveHasMore || liveSearchLoading) return;
     setLiveSearchLoading(true);
+    const controller = new AbortController();
+    activeSearchControllers.current.add(controller);
     try {
       const filters = ticketmasterSearchFilters(query);
       const btsSearch = isGlobalBtsSearch(query);
@@ -510,44 +535,59 @@ const App = () => {
         countryCode: location.code,
         countryCodes,
         page: searchedLivePage + 1,
+        signal: controller.signal,
       });
+      if (controller.signal.aborted || requestQueryKey !== currentQueryKey.current) return;
       const nextEvents = btsSearch ? result.events.filter((event) => /\bBTS\b/i.test(event.name)) : result.events;
-      setSearchedLiveEvents((current) => [...current, ...nextEvents.filter((event) => !current.some((existing) => existing.ticketmasterId === event.ticketmasterId))]);
+      setSearchedLiveEvents((current) => [...new Map([...current, ...nextEvents].map((event) => [event.ticketmasterId || event.id, event])).values()]);
       setSearchedLivePage(result.page);
-      setSearchedLiveHasMore(result.hasMore);
+      const partial = result.partial || result.rateLimited || result.stale;
+      setSearchedLiveHasMore(result.hasMore && !partial);
+      if (result.rateLimited) setLiveSearchStatus('rateLimited');
+      else if (result.stale) setLiveSearchStatus('stale');
+      else if (result.partial) setLiveSearchStatus('partial');
     } catch (error) {
-      console.warn('More Ticketmaster search results unavailable', error);
-      setSearchedLiveHasMore(false);
+      if (error.name !== 'AbortError' && requestQueryKey === currentQueryKey.current) {
+        console.warn('More Ticketmaster search results unavailable', error);
+        setSearchedLiveHasMore(false);
+        setLiveSearchStatus(error.status === 429 ? 'rateLimited' : 'error');
+      }
     } finally {
+      activeSearchControllers.current.delete(controller);
       setLiveSearchLoading(false);
     }
-  }, [query, location.code, searchedLiveCountryCodes, searchedLivePage, searchedLiveHasMore, liveSearchLoading]);
+  }, [query, location.code, searchedLiveCountryCodes, searchedLivePage, searchedLiveQueryKey, searchedLiveHasMore, liveSearchLoading]);
   useEffect(() => {
-    if (!isLiveBackendConfigured()) return;
-    const unsub = connectLiveEvents((event, kind) => {
+    const unsub = connectLiveEvents((event, kind, complete = true) => {
       setLiveEvents((prev) => {
+        if (kind === 'snapshot') {
+          if (complete) return event;
+          return [...new Map([...prev, ...event].map((item) => [item.ticketmasterId || item.id, item])).values()];
+        }
         if (kind === 'gone') return prev.filter((e) => e.ticketmasterId !== event.ticketmasterId);
-        if (kind === 'update') return prev.map((e) => (e.ticketmasterId === event.ticketmasterId ? event : e));
+        const index = prev.findIndex((e) => e.ticketmasterId === event.ticketmasterId);
+        if (index >= 0) return prev.map((e, i) => i === index ? event : e);
         return [event, ...prev];
       });
-    });
+    }, { onStatus: setLiveFeedStatus });
     return unsub;
   }, []);
   const displayedEvents = useMemo(() => {
+    const matchingSearchEvents = searchedLiveQueryKey === query.trim().toLowerCase() ? searchedLiveEvents : [];
     const sourceEvents = query.trim()
-      ? [...searchedLiveEvents, ...filtered.filter((event) => !searchedLiveEvents.some((liveEvent) => (liveEvent.ticketmasterId || liveEvent.id) === (event.ticketmasterId || event.id)))]
+      ? [...matchingSearchEvents, ...filtered.filter((event) => !matchingSearchEvents.some((liveEvent) => (liveEvent.ticketmasterId || liveEvent.id) === (event.ticketmasterId || event.id)))]
       : liveEvents;
     if (isLiveBackendConfigured() || query.trim()) {
       return category === 'events' ? sourceEvents : sourceEvents.filter((event) => event.category === category);
     }
     return liveEvents.length ? liveEvents : filtered;
-  }, [liveEvents, filtered, searchedLiveEvents, query, category]);
-  const eventListLimit = isWorldwideSearch(query) ? displayedEvents.length : visibleCount;
+  }, [liveEvents, filtered, searchedLiveEvents, searchedLiveQueryKey, query, category]);
+  const eventListLimit = visibleCount;
   useEffect(() => {
-    if (query.trim() && searchedLiveHasMore && (isWorldwideSearch(query) || visibleCount >= displayedEvents.length)) {
+    if (query.trim() && searchedLiveQueryKey === query.trim().toLowerCase() && searchedLiveHasMore && visibleCount >= displayedEvents.length) {
       loadMoreLiveSearch();
     }
-  }, [query, searchedLiveHasMore, visibleCount, displayedEvents.length, loadMoreLiveSearch]);
+  }, [query, searchedLiveQueryKey, searchedLiveHasMore, visibleCount, displayedEvents.length, loadMoreLiveSearch]);
   const formatMoney = (amount) => money(amount, settings.currency);
   const subtotal = selected ? selected.price * quantity : 0; const fees = Math.ceil(subtotal * feeRate / 100); const total = subtotal + fees;
   const openEvent = useCallback((event) => { navigationHistory.current = []; setSelected(event); setQuantity(1); setChosenSeats([]); setSelectedSection(null); setSelectedRow(null); setTicketType(''); navigate('detail'); }, [navigate]);
@@ -586,8 +626,8 @@ const App = () => {
       </TouchableOpacity>;
     })}
   </ScrollView>);
-  if (screen === 'home') return <SafeAreaView style={styles.newHomeScreen} edges={['top', 'bottom']}><ScrollView showsVerticalScrollIndicator={false} scrollEventThrottle={16} onScroll={({ nativeEvent }) => { const remaining = nativeEvent.contentSize.height - nativeEvent.layoutMeasurement.height - nativeEvent.contentOffset.y; if (remaining < 260 && visibleCount < displayedEvents.length) setVisibleCount((count) => Math.min(count + 8, displayedEvents.length)); }} contentContainerStyle={styles.newHomeScroll}><View style={styles.newHomeHeader}><View style={styles.homeLogoRow}><Text style={styles.homeWordmark}>ticketmaster</Text><TouchableOpacity onPress={() => setScreen('location')} style={styles.countryPicker}><Text style={styles.countryFlag}>{location.flag}</Text></TouchableOpacity></View><View style={styles.homeFilters}><TouchableOpacity onPress={() => setScreen('location')} style={styles.homeFilter}><Text style={styles.homeFilterIcon}>⌖</Text><View><Text style={styles.homeFilterLabel}>LOCATION</Text><Text style={styles.homeFilterValue}>{location.city}</Text></View></TouchableOpacity><View style={styles.homeFilterDivider} /><TouchableOpacity style={styles.homeFilter}><Text style={styles.homeFilterIcon}>▣</Text><View><Text style={styles.homeFilterLabel}>DATES</Text><Text style={styles.homeFilterValue}>All Dates</Text></View></TouchableOpacity><Text style={styles.homeChevron}>⌄</Text></View><View style={styles.homeSearch}><Text style={styles.homeSearchLabel}>SEARCH</Text><TextInput value={query} onChangeText={setQuery} placeholder="Artist, Event or Venue" placeholderTextColor="#737373" style={styles.homeSearchInput} /><Text style={styles.homeSearchIcon}>⌕</Text></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.homeChips}>{[{ id: 'Concerts', label: 'Concerts' }, { id: 'Sports', label: 'Sports' }, { id: 'Theater', label: 'Arts, Theater & Comedy' }, { id: 'Festivals', label: 'Family' }, { id: 'events', label: 'Albuquerque' }].map((item) => <TouchableOpacity key={item.id} onPress={() => setCategory(item.id)} style={[styles.homeChip, category === item.id && styles.homeChipActive]}><Text style={[styles.homeChipText, category === item.id && styles.homeChipTextActive]}>{item.label}</Text></TouchableOpacity>)}</ScrollView></View>{displayedEvents[0] && <TouchableOpacity onPress={() => openEvent(displayedEvents[0])} activeOpacity={.92} style={styles.homeFeature}><Image source={{ uri: displayedEvents[0].image }} style={styles.homeFeatureImage} /><View style={styles.homeFeatureShade} /><View style={styles.homeFeatureCopy}><Text style={styles.homeFeatureDate}>{day(displayedEvents[0])} · {displayedEvents[0].time || 'Time TBA'}</Text><Text style={styles.homeFeatureName}>{displayedEvents[0].name}</Text><TouchableOpacity onPress={() => openEvent(displayedEvents[0])} style={styles.homeFeatureButton}><Text style={styles.homeFeatureButtonText}>Reserve tickets</Text></TouchableOpacity></View></TouchableOpacity>}<View style={styles.homeFeed}>{displayedEvents.slice(1, eventListLimit).map((event) => <HomePosterCard key={event.id} event={event} onPress={openEvent} />)}</View></ScrollView><HomeBottomNav onHome={() => setScreen('home')} onTickets={() => setScreen('tickets')} onProfile={() => { setName(profile?.name || ''); setScreen('profile'); }} /></SafeAreaView>;
-  if (screen === 'home') return top(<ScrollView showsVerticalScrollIndicator={false} scrollEventThrottle={16} onScroll={({ nativeEvent }) => { const { layoutMeasurement, contentOffset, contentSize } = nativeEvent; const nearEnd = layoutMeasurement.height + contentOffset.y >= contentSize.height - 520; if (nearEnd && isTicketmasterConfigured() && liveHasMore) loadLiveEvents(livePage + 1, true); else if (nearEnd && visibleCount < displayedEvents.length) setVisibleCount((count) => Math.min(count + 12, displayedEvents.length)); }} contentContainerStyle={styles.scroll}><ImageBackground source={{ uri: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1200&q=90' }} style={styles.hero}><View style={styles.heroShade} /><View style={styles.heroBody}><TouchableOpacity onPress={() => { setName(profile?.name || ''); setScreen('profile'); }} style={styles.homeProfile}>{profile?.image ? <Image source={{ uri: profile.image }} style={styles.homeProfileImage} /> : <View style={styles.homeProfilePlaceholder}><Text style={styles.homeProfileInitial}>{(profile?.name || 'U').charAt(0).toUpperCase()}</Text></View>}<View><Text style={styles.homeProfileName}>{profile?.name || 'Your profile'}</Text><Text style={styles.homeProfileAction}>Tap to change photo</Text></View></TouchableOpacity><Text style={styles.eyebrow}>LIVE EVENTS, MADE EASY</Text><Text style={styles.heroTitle}>Your next unforgettable night starts here.</Text><Text style={styles.heroCopy}>Hi {profile ? profile.name : 'there'}. Find concerts, sport, theatre and festivals near you.</Text><View style={styles.search}><Text style={styles.searchSymbol}>⌕</Text><TextInput value={query} onChangeText={setQuery} placeholder="Artist, event or venue" placeholderTextColor="#667085" style={styles.searchInput} /></View></View></ImageBackground><View style={styles.categories}><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>{categories.map((item) => <TouchableOpacity key={item.id} onPress={() => { setCategory(item.id); setVisibleCount(8); }} style={[styles.category, category === item.id && styles.categoryActive]}><Text style={[styles.categoryIcon, category === item.id && styles.categoryIconActive]}>{item.icon}</Text><Text style={[styles.categoryText, category === item.id && styles.categoryTextActive]}>{item.label}</Text></TouchableOpacity>)}</ScrollView></View><View style={styles.sectionHead}><Text style={styles.sectionKicker}>{liveEvents.length ? 'LIVE FROM TICKETMASTER' : 'HAPPENING NOW'}</Text><Text style={styles.sectionTitle}>Featured events</Text></View><FlatList horizontal data={displayedEvents.slice(0, 4)} keyExtractor={(item) => item.id.toString()} renderItem={({ item }) => <EventCard event={item} onPress={openEvent} currency={settings.currency} />} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featured} initialNumToRender={2} maxToRenderPerBatch={2} windowSize={3} removeClippedSubviews /><View style={styles.sectionHead}><Text style={styles.sectionKicker}>DON'T MISS OUT</Text><Text style={styles.sectionTitle}>{category === 'events' ? 'Upcoming for you' : category}</Text></View><View style={styles.eventList}>{displayedEvents.slice(0, eventListLimit).map((event) => <EventCard compact key={event.id} event={event} onPress={openEvent} currency={settings.currency} />)}{((!isWorldwideSearch(query) && visibleCount < displayedEvents.length) || liveLoading || liveSearchLoading || (query.trim() && searchedLiveHasMore)) && <View style={styles.loadingMore}><ActivityIndicator color="#026cdf" /><Text style={styles.loadingMoreText}>{liveLoading ? 'Loading Ticketmaster events…' : 'Loading more events…'}</Text></View>}</View></ScrollView>);
+  if (screen === 'home') return <SafeAreaView style={styles.newHomeScreen} edges={['top', 'bottom']}><ScrollView showsVerticalScrollIndicator={false} scrollEventThrottle={16} onScroll={({ nativeEvent }) => { const remaining = nativeEvent.contentSize.height - nativeEvent.layoutMeasurement.height - nativeEvent.contentOffset.y; if (remaining < 260 && visibleCount < displayedEvents.length) setVisibleCount((count) => Math.min(count + 8, displayedEvents.length)); }} contentContainerStyle={styles.newHomeScroll}><View style={styles.newHomeHeader}><View style={styles.homeLogoRow}><Text style={styles.homeWordmark}>ticketmaster</Text><TouchableOpacity onPress={() => setScreen('location')} style={styles.countryPicker}><Text style={styles.countryFlag}>{location.flag}</Text></TouchableOpacity></View><View style={styles.homeFilters}><TouchableOpacity onPress={() => setScreen('location')} style={styles.homeFilter}><Text style={styles.homeFilterIcon}>⌖</Text><View><Text style={styles.homeFilterLabel}>LOCATION</Text><Text style={styles.homeFilterValue}>{location.city}</Text></View></TouchableOpacity><View style={styles.homeFilterDivider} /><TouchableOpacity style={styles.homeFilter}><Text style={styles.homeFilterIcon}>▣</Text><View><Text style={styles.homeFilterLabel}>DATES</Text><Text style={styles.homeFilterValue}>All Dates</Text></View></TouchableOpacity><Text style={styles.homeChevron}>⌄</Text></View><View style={styles.homeSearch}><Text style={styles.homeSearchLabel}>SEARCH</Text><TextInput value={query} onChangeText={setQuery} placeholder="Artist, Event or Venue" placeholderTextColor="#737373" style={styles.homeSearchInput} /><Text style={styles.homeSearchIcon}>⌕</Text></View>{query.trim() && displayedEvents.length > 0 && ['rateLimited', 'partial', 'stale', 'error'].includes(liveSearchStatus) && <View style={{ marginHorizontal: 18, marginTop: 12, padding: 12, backgroundColor: '#fff4df', borderRadius: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}><Text style={{ flex: 1, color: '#694a00', fontSize: 12 }}>{liveSearchStatus === 'rateLimited' ? 'Some countries were rate limited. Available and saved results are still shown.' : liveSearchStatus === 'partial' ? 'Some countries could not be searched. Available results are still shown.' : liveSearchStatus === 'stale' ? 'Showing saved search results while the service refreshes.' : 'Search could not be refreshed. Previously loaded results are still shown.'}</Text><TouchableOpacity onPress={() => setSearchRetryToken((value) => value + 1)} style={{ marginLeft: 10, padding: 8 }}><Text style={{ color: '#0057b8', fontWeight: '700' }}>Retry</Text></TouchableOpacity></View>}<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.homeChips}>{[{ id: 'Concerts', label: 'Concerts' }, { id: 'Sports', label: 'Sports' }, { id: 'Theater', label: 'Arts, Theater & Comedy' }, { id: 'Festivals', label: 'Family' }, { id: 'events', label: 'Albuquerque' }].map((item) => <TouchableOpacity key={item.id} onPress={() => setCategory(item.id)} style={[styles.homeChip, category === item.id && styles.homeChipActive]}><Text style={[styles.homeChipText, category === item.id && styles.homeChipTextActive]}>{item.label}</Text></TouchableOpacity>)}</ScrollView></View>{displayedEvents[0] && <TouchableOpacity onPress={() => openEvent(displayedEvents[0])} activeOpacity={.92} style={styles.homeFeature}><Image source={{ uri: displayedEvents[0].image }} style={styles.homeFeatureImage} /><View style={styles.homeFeatureShade} /><View style={styles.homeFeatureCopy}><Text style={styles.homeFeatureDate}>{day(displayedEvents[0])} · {displayedEvents[0].time || 'Time TBA'}</Text><Text style={styles.homeFeatureName}>{displayedEvents[0].name}</Text><TouchableOpacity onPress={() => openEvent(displayedEvents[0])} style={styles.homeFeatureButton}><Text style={styles.homeFeatureButtonText}>Reserve tickets</Text></TouchableOpacity></View></TouchableOpacity>}<View style={styles.homeFeed}>{displayedEvents.slice(1, eventListLimit).map((event) => <HomePosterCard key={event.id} event={event} onPress={openEvent} />)}</View>{!displayedEvents.length && <View style={{ margin: 18, padding: 24, alignItems: 'center', backgroundColor: '#f5f5f5', borderRadius: 8 }}><Text style={{ color: '#333', fontSize: 16, fontWeight: '700', textAlign: 'center' }}>{query.trim() ? liveSearchStatus === 'loading' ? 'Searching events…' : liveSearchStatus === 'rateLimited' ? 'Ticketmaster search is rate-limited.' : liveSearchStatus === 'error' ? 'Search is temporarily unavailable.' : liveSearchStatus === 'partial' ? 'Some countries could not be searched.' : liveSearchStatus === 'stale' ? 'Showing saved search results.' : 'No matching events found.' : liveFeedStatus === 'loading' ? 'Loading live events…' : liveFeedStatus === 'error' ? 'Live events are temporarily unavailable.' : 'No live events are available right now.'}</Text><Text style={{ color: '#666', fontSize: 13, textAlign: 'center', marginTop: 8 }}>{query.trim() ? 'Your previously loaded matching results are kept when available.' : 'The feed will retry automatically.'}</Text>{query.trim() && ['rateLimited', 'error', 'partial'].includes(liveSearchStatus) && <TouchableOpacity onPress={() => setSearchRetryToken((value) => value + 1)} style={{ marginTop: 12, paddingHorizontal: 18, paddingVertical: 10, backgroundColor: '#026cdf', borderRadius: 6 }}><Text style={{ color: '#fff', fontWeight: '700' }}>Retry search</Text></TouchableOpacity>}</View>}</ScrollView><HomeBottomNav onHome={() => setScreen('home')} onTickets={() => setScreen('tickets')} onProfile={() => { setName(profile?.name || ''); setScreen('profile'); }} /></SafeAreaView>;
+  if (screen === 'home') return top(<ScrollView showsVerticalScrollIndicator={false} scrollEventThrottle={16} onScroll={({ nativeEvent }) => { const { layoutMeasurement, contentOffset, contentSize } = nativeEvent; const nearEnd = layoutMeasurement.height + contentOffset.y >= contentSize.height - 520; if (nearEnd && isTicketmasterConfigured() && liveHasMore) loadLiveEvents(livePage + 1, true); else if (nearEnd && visibleCount < displayedEvents.length) setVisibleCount((count) => Math.min(count + 12, displayedEvents.length)); }} contentContainerStyle={styles.scroll}><ImageBackground source={{ uri: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1200&q=90' }} style={styles.hero}><View style={styles.heroShade} /><View style={styles.heroBody}><TouchableOpacity onPress={() => { setName(profile?.name || ''); setScreen('profile'); }} style={styles.homeProfile}>{profile?.image ? <Image source={{ uri: profile.image }} style={styles.homeProfileImage} /> : <View style={styles.homeProfilePlaceholder}><Text style={styles.homeProfileInitial}>{(profile?.name || 'U').charAt(0).toUpperCase()}</Text></View>}<View><Text style={styles.homeProfileName}>{profile?.name || 'Your profile'}</Text><Text style={styles.homeProfileAction}>Tap to change photo</Text></View></TouchableOpacity><Text style={styles.eyebrow}>LIVE EVENTS, MADE EASY</Text><Text style={styles.heroTitle}>Your next unforgettable night starts here.</Text><Text style={styles.heroCopy}>Hi {profile ? profile.name : 'there'}. Find concerts, sport, theatre and festivals near you.</Text><View style={styles.search}><Text style={styles.searchSymbol}>⌕</Text><TextInput value={query} onChangeText={setQuery} placeholder="Artist, event or venue" placeholderTextColor="#667085" style={styles.searchInput} /></View></View></ImageBackground><View style={styles.categories}><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>{categories.map((item) => <TouchableOpacity key={item.id} onPress={() => { setCategory(item.id); setVisibleCount(8); }} style={[styles.category, category === item.id && styles.categoryActive]}><Text style={[styles.categoryIcon, category === item.id && styles.categoryIconActive]}>{item.icon}</Text><Text style={[styles.categoryText, category === item.id && styles.categoryTextActive]}>{item.label}</Text></TouchableOpacity>)}</ScrollView></View><View style={styles.sectionHead}><Text style={styles.sectionKicker}>{liveEvents.length ? 'LIVE FROM TICKETMASTER' : 'HAPPENING NOW'}</Text><Text style={styles.sectionTitle}>Featured events</Text></View><FlatList horizontal data={displayedEvents.slice(0, 4)} keyExtractor={(item) => item.id.toString()} renderItem={({ item }) => <EventCard event={item} onPress={openEvent} currency={settings.currency} />} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featured} initialNumToRender={2} maxToRenderPerBatch={2} windowSize={3} removeClippedSubviews /><View style={styles.sectionHead}><Text style={styles.sectionKicker}>DON'T MISS OUT</Text><Text style={styles.sectionTitle}>{category === 'events' ? 'Upcoming for you' : category}</Text></View><View style={styles.eventList}>{displayedEvents.slice(0, eventListLimit).map((event) => <EventCard compact key={event.id} event={event} onPress={openEvent} currency={settings.currency} />)}{(visibleCount < displayedEvents.length || liveLoading || liveSearchLoading || (query.trim() && searchedLiveHasMore)) && <View style={styles.loadingMore}><ActivityIndicator color="#026cdf" /><Text style={styles.loadingMoreText}>{liveLoading ? 'Loading Ticketmaster events…' : 'Loading more events…'}</Text></View>}</View></ScrollView>);
   return <View style={{ flex: 1 }} />;
 };
 

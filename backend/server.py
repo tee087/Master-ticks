@@ -39,7 +39,7 @@ from event_tracker import EventTracker, normalize_event, _extract_events
 
 HOST = os.getenv("TM_HOST", "0.0.0.0")
 PORT = int(os.getenv("TM_PORT", "8765"))
-POLL_INTERVAL = float(os.getenv("TM_POLL_INTERVAL", "5"))
+POLL_INTERVAL = max(300.0, float(os.getenv("TM_POLL_INTERVAL", "300")))
 PAGES = int(os.getenv("TM_TRACK_PAGES", "1"))
 
 _clients = []
@@ -69,7 +69,7 @@ def make_handler(tracker_started):
         def log_message(self, *args):
             pass
 
-        def _send(self, status, body, ctype="application/json"):
+        def _send(self, status, body, ctype="application/json", headers=None):
             if isinstance(body, (dict, list)):
                 body = json.dumps(body, default=str).encode()
             elif isinstance(body, str):
@@ -80,6 +80,8 @@ def make_handler(tracker_started):
             self.send_header("Content-Type", ctype)
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", "no-store")
+            for name, value in (headers or {}).items():
+                self.send_header(name, str(value))
             self.end_headers()
             self.wfile.write(body)
 
@@ -89,7 +91,8 @@ def make_handler(tracker_started):
             if path == "/health":
                 self._send(200, {"status": "ok", "clients": len(_clients)})
             elif path == "/events":
-                self._send(200, tracker_started["tracker"].snapshot())
+                tracker = tracker_started["tracker"]
+                self._send(200, tracker.snapshot(), headers={"X-Feed-Ready": str(tracker.has_successful_page).lower(), "X-Feed-Complete": str(tracker.has_successful_poll).lower()})
             elif path == "/search":
                 params = parse_qs(parsed.query)
                 keyword = (params.get("keyword") or [""])[0].strip()
@@ -118,7 +121,19 @@ def make_handler(tracker_started):
                     self._send(502, {"error": "ticketmaster_search_failed"})
                     return
                 if isinstance(result, dict) and result.get("error"):
-                    self._send(502, {"error": "ticketmaster_search_failed"})
+                    is_rate_limited = result.get("error") == "http_429"
+                    status = 429 if is_rate_limited else 502
+                    retry_after = result.get("retryAfter")
+                    headers = {}
+                    if is_rate_limited and retry_after is not None:
+                        try:
+                            headers["Retry-After"] = str(max(1, int(float(retry_after))))
+                        except (TypeError, ValueError, OverflowError):
+                            pass
+                    body = {"error": "rate_limited" if is_rate_limited else "ticketmaster_search_failed"}
+                    if retry_after is not None:
+                        body["retryAfter"] = retry_after
+                    self._send(status, body, headers=headers)
                     return
                 api_page = result.get("page", {}) if isinstance(result, dict) else {}
                 self._send(200, {
@@ -128,6 +143,7 @@ def make_handler(tracker_started):
                         "totalPages": api_page.get("totalPages", 1),
                         "totalElements": api_page.get("totalElements"),
                     },
+                    "stale": bool(result.get("_cache_stale")) if isinstance(result, dict) else False,
                 })
             elif path == "/events/stream":
                 self._stream()
@@ -174,7 +190,7 @@ def start_tracker(cookies):
     pages = int(os.getenv("TM_TRACK_PAGES", "2" if api_key else str(PAGES)))
     source = "public Discovery API (key-based, IP-agnostic)" if api_key else "homepage SSR (clean-IP)"
     print(f"Live feed source: {source} | page_size={page_size} pages={pages} "
-          f"-> up to {page_size * pages} events/poll")
+          f"-> up to {page_size * pages} events/poll | poll_interval={POLL_INTERVAL}s")
     client = from_cookies(cookies)
     tracker = EventTracker(client, poll_interval=POLL_INTERVAL,
                            page_size=page_size, on_event=broadcast)

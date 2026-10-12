@@ -19,6 +19,8 @@ import json
 import hashlib
 import threading
 import requests
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from typing import Optional, Callable, List, Dict, Any
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -184,12 +186,12 @@ def _extract_events(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
 class EventTracker:
     """Polls the Ticketmaster website API and emits live event deltas."""
 
-    def __init__(self, client: TicketmasterClient, poll_interval: float = 5.0,
+    def __init__(self, client: TicketmasterClient, poll_interval: float = 300.0,
                  page_size: int = 20, country_code: str = "US",
                  keyword: str = "", on_event: Optional[Callable] = None,
                  on_status: Optional[Callable] = None):
         self.client = client
-        self.poll_interval = poll_interval
+        self.poll_interval = max(300.0, float(poll_interval))
         self.page_size = page_size
         self.country_code = country_code
         self.keyword = keyword
@@ -197,6 +199,10 @@ class EventTracker:
         self.on_status = on_status
         self._seen: Dict[str, Dict[str, Any]] = {}
         self._etags: Dict[int, str] = {}
+        self._page_ids: Dict[int, List[str]] = {}
+        self._last_retry_after = 0.0
+        self._has_successful_poll = False
+        self._has_successful_page = False
         self._stop = threading.Event()
         self._lock = threading.Lock()
 
@@ -228,8 +234,31 @@ class EventTracker:
         )
         return hashlib.sha1(digest.encode()).hexdigest()
 
-    def _sync_page(self, page: int) -> List[str]:
-        """Sync one page of results; emit new/update deltas, return seen ids."""
+    @staticmethod
+    def _retry_delay_seconds(payload: Dict[str, Any]) -> float:
+        retry_after = payload.get("retryAfter")
+        if retry_after:
+            try:
+                return max(0.0, float(retry_after))
+            except (TypeError, ValueError):
+                try:
+                    retry_at = parsedate_to_datetime(str(retry_after))
+                    if retry_at.tzinfo is None:
+                        retry_at = retry_at.replace(tzinfo=timezone.utc)
+                    return max(0.0, (retry_at - datetime.now(timezone.utc)).total_seconds())
+                except (TypeError, ValueError, OverflowError):
+                    pass
+        reset_at = payload.get("rateLimitReset")
+        try:
+            reset_at = float(reset_at)
+            if reset_at > 1_000_000_000_000:
+                reset_at /= 1000.0
+            return max(0.0, reset_at - time.time())
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _sync_page(self, page: int) -> Optional[List[str]]:
+        """Sync one page; return None when the upstream request failed."""
         etag = self._etags.get(page)
         attempts = 0
         payload = None
@@ -241,26 +270,24 @@ class EventTracker:
                 )
                 break
             except (requests.exceptions.RequestException, ValueError) as exc:
-                # Transient network failure (DNS hiccup, connection reset by a
-                # blocked upstream, etc.) must NOT kill the poll thread. Log,
-                # back off briefly, and retry the same page so a momentary DNS
-                # blip doesn't drop an entire page of live events.
                 attempts += 1
                 self._log(f"search request error page={page} attempt={attempts}: {exc}")
                 if attempts < 3:
                     self._stop.wait(3.0 * attempts)
         else:
-            return []
+            return None
 
         if isinstance(payload, dict) and payload.get("error"):
             self._log(f"search error page={page}: {payload['error']}")
-            return []
+            self._last_retry_after = max(
+                self._last_retry_after, self._retry_delay_seconds(payload)
+            )
+            return None
         if isinstance(payload, dict) and payload.get("status") == "not_modified":
-            # Server confirmed the page is unchanged -- cheap real-time cycle.
-            return []
+            with self._lock:
+                self._has_successful_page = True
+                return list(self._page_ids.get(page, []))
 
-        # Cache the ETag/version for the next If-None-Match probe when the
-        # server exposes one. The SSR payload carries a buildId as the version.
         etag_now = None
         for holder in (payload.get("meta"), payload.get("headers", {}), payload):
             if isinstance(holder, dict):
@@ -290,22 +317,27 @@ class EventTracker:
         if etag_now:
             with self._lock:
                 self._etags[page] = etag_now
+        with self._lock:
+            self._page_ids[page] = list(page_ids)
+            self._has_successful_page = True
         return page_ids
 
-    def _poll_once(self, pages: int):
-        """Sync every page, emitting per-page new/update deltas as they arrive;
-        events from successfully-fetched pages are retained even if a later
-        page fails a transient DNS blip. At the end, emit 'gone' for any
-        previously-seen event not present in this poll cycle."""
+    def _poll_once(self, pages: int) -> bool:
+        """Prune missing events only after every requested page succeeds."""
         cycle_ids = set()
         for page in range(pages):
             if self._stop.is_set():
-                return
-            cycle_ids.update(self._sync_page(page))
+                return False
+            page_ids = self._sync_page(page)
+            if page_ids is None:
+                return False
+            cycle_ids.update(page_ids)
         with self._lock:
             gone = [eid for eid in list(self._seen.keys()) if eid not in cycle_ids]
             for eid in gone:
                 self._emit(self._seen.pop(eid), "gone")
+            self._has_successful_poll = True
+        return True
 
     def _emit(self, event: Dict[str, Any], kind: str):
         try:
@@ -317,13 +349,30 @@ class EventTracker:
     # Public control
     # ------------------------------------------------------------------ #
     def start(self, pages: int = 1, loop: bool = True):
+        pages = max(1, int(pages))
         self._log(f"tracking live events (keyword={self.keyword!r}, "
                   f"country={self.country_code}, pages={pages})")
+        consecutive_failures = 0
         while not self._stop.is_set():
-            self._poll_once(pages)
+            self._last_retry_after = 0.0
+            poll_succeeded = self._poll_once(pages)
             if not loop:
                 break
-            self._stop.wait(self.poll_interval)
+            if poll_succeeded:
+                consecutive_failures = 0
+                delay = self.poll_interval
+            else:
+                consecutive_failures += 1
+                backoff = min(
+                    900.0,
+                    max(self.poll_interval, 15.0) * (2 ** min(consecutive_failures - 1, 5)),
+                )
+                delay = max(backoff, self._last_retry_after)
+                self._log(
+                    f"poll failed; retaining {len(self.snapshot())} cached events; "
+                    f"retrying in {int(delay)}s"
+                )
+            self._stop.wait(delay)
         self._log("tracker stopped")
 
     def stop(self):
@@ -336,9 +385,18 @@ class EventTracker:
                 for event in self._seen.values()
             ]
 
+    @property
+    def has_successful_page(self) -> bool:
+        with self._lock:
+            return self._has_successful_page
+
+    @property
+    def has_successful_poll(self) -> bool:
+        with self._lock:
+            return self._has_successful_poll
 
 def stream_events(client: TicketmasterClient,
-                  interval: float = 5.0,
+                  interval: float = 300.0,
                   pages: int = 1,
                   on_event: Optional[Callable] = None) -> Callable:
     """Start the tracker in a background thread and return a stop handle."""
@@ -359,8 +417,8 @@ def main():
         return 1
     cookies = load_cookies()
     client = from_cookies(cookies)
-    tracker = EventTracker(client, poll_interval=float(os.getenv("TM_POLL_INTERVAL", "5")))
-    interval = float(os.getenv("TM_POLL_INTERVAL", "5"))
+    tracker = EventTracker(client, poll_interval=max(300.0, float(os.getenv("TM_POLL_INTERVAL", "300"))))
+    interval = max(300.0, float(os.getenv("TM_POLL_INTERVAL", "300")))
     pages = int(os.getenv("TM_TRACK_PAGES", "1"))
     try:
         tracker.start(pages=pages)

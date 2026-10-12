@@ -12,7 +12,7 @@ COPY backend/ ./backend/
 EXPOSE 8765
 
 # Bind to all interfaces so the host/SSh tunnel/Cloud firewall can reach it.
-ENV TM_HOST=0.0.0.0 TM_PORT=8765 TM_POLL_INTERVAL=5 TM_TRACK_PAGES=1
+ENV TM_HOST=0.0.0.0 TM_PORT=8765 TM_POLL_INTERVAL=300
 
 # Entrypoint: serve the SSE live feed. On a clean IP the homepage SSR is served
 # directly with browser headers (cookies.json may contain only _ga). On a
